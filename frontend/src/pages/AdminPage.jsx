@@ -142,9 +142,13 @@ export default function AdminPage() {
                   onChange={e => setNewRole(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white"
                 >
-                  <option value="user">Benutzer</option>
+                  <option value="user">Benutzer (Vollzugriff)</option>
+                  <option value="visitor">Besucher (Nur Ansicht)</option>
                   <option value="admin">Administrator</option>
                 </select>
+                <p className="text-xs text-muted-foreground mt-1.5">
+                  Besucher können nur ihren Tisch finden und das Menü sehen.
+                </p>
               </div>
               <button
                 data-testid="create-user-btn"
@@ -184,8 +188,12 @@ export default function AdminPage() {
                           <div>
                             <div className="flex items-center gap-2">
                               <span className="font-medium text-sm">{u.username}</span>
-                              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${u.role === 'admin' ? 'bg-accent/15 text-accent' : 'bg-secondary text-muted-foreground'}`}>
-                                {u.role === 'admin' ? 'Admin' : 'Benutzer'}
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${
+                                u.role === 'admin' ? 'bg-accent/15 text-accent' : 
+                                u.role === 'visitor' ? 'bg-blue-100 text-blue-700' : 
+                                'bg-secondary text-muted-foreground'
+                              }`}>
+                                {u.role === 'admin' ? 'Admin' : u.role === 'visitor' ? 'Besucher' : 'Benutzer'}
                               </span>
                               {u.username === user?.username && (
                                 <span className="text-[10px] text-muted-foreground">(Sie)</span>

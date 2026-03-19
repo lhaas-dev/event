@@ -4,7 +4,7 @@ import api from '@/api';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Search, CheckCircle2, Circle, Users,
-  Settings, FileDown, Layout, Link2, RotateCcw
+  Settings, FileDown, Layout, Link2, RotateCcw, Briefcase, UtensilsCrossed
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
@@ -48,60 +48,53 @@ function CheckinRow({ guest, guestMap, onToggle, isCompanion }) {
     <div
       data-testid={`checkin-row-${guest.id}`}
       onClick={handleToggle}
-      className={`flex items-center gap-4 px-4 md:px-6 py-4 border-b border-border cursor-pointer select-none transition-colors
-        ${isCompanion ? 'pl-10 md:pl-16 bg-background/60' : 'bg-white'}
-        ${guest.checked_in ? 'bg-green-50/80' : 'hover:bg-gray-50'}
+      className={`flex items-center gap-3 px-3 md:px-4 py-2.5 border-b border-border/50 cursor-pointer select-none transition-colors
+        ${isCompanion ? 'pl-8 md:pl-10 bg-background/40' : 'bg-white'}
+        ${guest.checked_in ? 'bg-green-50/60' : 'hover:bg-gray-50'}
         active:bg-gray-100`}
     >
-      {/* Indentation line for companions */}
-      {isCompanion && (
-        <div className="absolute left-6 md:left-8 w-px h-full bg-border opacity-60" style={{ position: 'relative', left: -8, top: 0, marginRight: -8 }}>
-          <div className="w-4 h-px bg-border absolute top-1/2 left-0" />
-        </div>
-      )}
-
-      {/* Avatar */}
+      {/* Avatar - smaller */}
       <div
-        className="w-11 h-11 md:w-12 md:h-12 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
+        className="w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-xs flex-shrink-0"
         style={{ background: guest.checked_in ? '#22c55e' : TYPE_COLORS[guest.guest_type] || '#7D8F69' }}
       >
         {guest.checked_in ? '✓' : initials}
       </div>
 
-      {/* Name + info */}
+      {/* Name + info - more compact */}
       <div className="flex-1 min-w-0">
-        <div className={`font-medium text-base md:text-lg leading-tight ${guest.checked_in ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
+        <div className={`font-medium text-sm leading-tight ${guest.checked_in ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
           {guest.first_name} {guest.last_name}
         </div>
-        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
           <span
-            className="text-[11px] px-2 py-0.5 rounded-full text-white"
+            className="text-[9px] px-1 py-0.5 rounded-full text-white"
             style={{ background: TYPE_COLORS[guest.guest_type] || '#7D8F69' }}
           >
-            {guest.guest_type === 'kind' ? 'Kind' : 'Erwachsener'}
+            {guest.guest_type === 'kind' ? 'K' : 'E'}
           </span>
-          {companionOf && (
-            <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
-              <Link2 className="w-3 h-3" />
-              Begl. v. {companionOf.first_name} {companionOf.last_name}
-            </span>
+          {guest.is_staff && (
+            <span className="text-[9px] px-1 py-0.5 rounded-full bg-amber-100 text-amber-700">MA</span>
           )}
-          {isCompanion && !companionOf && (
-            <span className="text-[11px] text-muted-foreground italic">Begleitperson</span>
+          {companionOf && (
+            <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
+              <Link2 className="w-2.5 h-2.5" />
+              {companionOf.first_name}
+            </span>
           )}
         </div>
       </div>
 
-      {/* Check button */}
-      <div className={`w-10 h-10 md:w-11 md:h-11 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all
+      {/* Check button - smaller */}
+      <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all
         ${guest.checked_in
           ? 'bg-green-500 border-green-500'
           : 'border-gray-300 bg-white hover:border-green-400'
         } ${loading ? 'opacity-50' : ''}`}
       >
         {guest.checked_in
-          ? <CheckCircle2 className="w-6 h-6 text-white" />
-          : <Circle className="w-6 h-6 text-gray-300" />
+          ? <CheckCircle2 className="w-4 h-4 text-white" />
+          : <Circle className="w-4 h-4 text-gray-300" />
         }
       </div>
     </div>
@@ -190,11 +183,17 @@ export default function CheckinPage() {
           <Link to={`/event/${eventId}/gaeste`} className="px-2 md:px-3 py-2 rounded-xl text-xs md:text-sm font-medium text-muted-foreground hover:bg-secondary flex items-center gap-1">
             <Users className="w-3.5 h-3.5" /><span className="hidden md:inline"> Gäste</span>
           </Link>
+          <Link to={`/event/${eventId}/mitarbeiter`} className="px-2 md:px-3 py-2 rounded-xl text-xs md:text-sm font-medium text-muted-foreground hover:bg-secondary flex items-center gap-1">
+            <Briefcase className="w-3.5 h-3.5" /><span className="hidden md:inline"> MA</span>
+          </Link>
           <Link to={`/event/${eventId}/tischplan`} className="px-2 md:px-3 py-2 rounded-xl text-xs md:text-sm font-medium text-muted-foreground hover:bg-secondary flex items-center gap-1">
-            <Settings className="w-3.5 h-3.5" /><span className="hidden md:inline"> Tischplan</span>
+            <Settings className="w-3.5 h-3.5" /><span className="hidden md:inline"> Plan</span>
           </Link>
           <Link to={`/event/${eventId}/einlass`} className="px-2 md:px-3 py-2 rounded-xl text-xs md:text-sm font-medium bg-primary text-white flex items-center gap-1">
             <CheckCircle2 className="w-3.5 h-3.5" /><span className="hidden md:inline"> Einlass</span>
+          </Link>
+          <Link to={`/event/${eventId}/menu`} className="px-2 md:px-3 py-2 rounded-xl text-xs md:text-sm font-medium text-muted-foreground hover:bg-secondary flex items-center gap-1">
+            <UtensilsCrossed className="w-3.5 h-3.5" /><span className="hidden md:inline"> Menü</span>
           </Link>
           <Link to={`/event/${eventId}/export`} className="px-2 md:px-3 py-2 rounded-xl text-xs md:text-sm font-medium text-muted-foreground hover:bg-secondary flex items-center gap-1">
             <FileDown className="w-3.5 h-3.5" /><span className="hidden md:inline"> Export</span>

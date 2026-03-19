@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '@/api';
 import { toast } from 'sonner';
-import { ArrowLeft, Plus, Trash2, Upload, Users, Settings, FileDown, Layout, Edit2, Check, X, Link2, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Upload, Users, Settings, FileDown, Layout, Edit2, Check, X, Link2, CheckCircle2, UtensilsCrossed, Briefcase, Car, FileText } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 const TYPE_COLORS = { erwachsener: '#7D8F69', kind: '#3B82F6' };
@@ -27,6 +27,10 @@ function NavBar({ event, activeTab }) {
           className={`px-2 md:px-4 py-2 rounded-xl text-xs md:text-sm font-medium transition-colors flex items-center gap-1 ${activeTab === 'gaeste' ? 'bg-primary text-white' : 'text-muted-foreground hover:bg-secondary'}`}>
           <Users className="w-3.5 h-3.5" /><span className="hidden sm:inline"> Gäste</span>
         </Link>
+        <Link to={`/event/${event?.id}/mitarbeiter`}
+          className={`px-2 md:px-4 py-2 rounded-xl text-xs md:text-sm font-medium transition-colors flex items-center gap-1 ${activeTab === 'mitarbeiter' ? 'bg-primary text-white' : 'text-muted-foreground hover:bg-secondary'}`}>
+          <Briefcase className="w-3.5 h-3.5" /><span className="hidden sm:inline"> Mitarbeiter</span>
+        </Link>
         <Link to={`/event/${event?.id}/tischplan`}
           className={`px-2 md:px-4 py-2 rounded-xl text-xs md:text-sm font-medium transition-colors flex items-center gap-1 ${activeTab === 'tischplan' ? 'bg-primary text-white' : 'text-muted-foreground hover:bg-secondary'}`}>
           <Settings className="w-3.5 h-3.5" /><span className="hidden sm:inline"> Tischplan</span>
@@ -34,6 +38,10 @@ function NavBar({ event, activeTab }) {
         <Link to={`/event/${event?.id}/einlass`}
           className={`px-2 md:px-4 py-2 rounded-xl text-xs md:text-sm font-medium transition-colors flex items-center gap-1 ${activeTab === 'einlass' ? 'bg-primary text-white' : 'text-muted-foreground hover:bg-secondary'}`}>
           <CheckCircle2 className="w-3.5 h-3.5" /><span className="hidden sm:inline"> Einlass</span>
+        </Link>
+        <Link to={`/event/${event?.id}/menu`}
+          className={`px-2 md:px-4 py-2 rounded-xl text-xs md:text-sm font-medium transition-colors flex items-center gap-1 ${activeTab === 'menu' ? 'bg-primary text-white' : 'text-muted-foreground hover:bg-secondary'}`}>
+          <UtensilsCrossed className="w-3.5 h-3.5" /><span className="hidden sm:inline"> Menü</span>
         </Link>
         <Link to={`/event/${event?.id}/export`}
           className={`px-2 md:px-4 py-2 rounded-xl text-xs md:text-sm font-medium transition-colors flex items-center gap-1 ${activeTab === 'export' ? 'bg-primary text-white' : 'text-muted-foreground hover:bg-secondary'}`}>
@@ -74,6 +82,9 @@ function GuestRow({ guest, allGuests, onDelete, onUpdate }) {
   const [lastName, setLastName] = useState(guest.last_name);
   const [guestType, setGuestType] = useState(guest.guest_type || 'erwachsener');
   const [companionOf, setCompanionOf] = useState(guest.companion_of || '');
+  const [notes, setNotes] = useState(guest.notes || '');
+  const [vehicle, setVehicle] = useState(guest.vehicle || '');
+  const [licensePlate, setLicensePlate] = useState(guest.license_plate || '');
 
   const companionName = guest.companion_of
     ? allGuests.find(g => g.id === guest.companion_of)
@@ -85,6 +96,9 @@ function GuestRow({ guest, allGuests, onDelete, onUpdate }) {
       last_name: lastName.trim(),
       guest_type: guestType,
       companion_of: companionOf || null,
+      notes: notes.trim(),
+      vehicle: vehicle.trim(),
+      license_plate: licensePlate.trim(),
     });
     setEditing(false);
   };
@@ -94,6 +108,9 @@ function GuestRow({ guest, allGuests, onDelete, onUpdate }) {
     setLastName(guest.last_name);
     setGuestType(guest.guest_type || 'erwachsener');
     setCompanionOf(guest.companion_of || '');
+    setNotes(guest.notes || '');
+    setVehicle(guest.vehicle || '');
+    setLicensePlate(guest.license_plate || '');
     setEditing(false);
   };
 
@@ -115,10 +132,20 @@ function GuestRow({ guest, allGuests, onDelete, onUpdate }) {
           <select value={companionOf} onChange={e => setCompanionOf(e.target.value)}
             className="px-3 py-1.5 rounded-lg border border-border text-sm focus:outline-none focus:ring-1 focus:ring-primary bg-white">
             <option value="">– Keine Begleitperson –</option>
-            {allGuests.filter(g => g.id !== guest.id).map(g => (
+            {allGuests.filter(g => g.id !== guest.id && !g.is_staff).map(g => (
               <option key={g.id} value={g.id}>{g.first_name} {g.last_name}</option>
             ))}
           </select>
+        </div>
+        <div className="mb-2">
+          <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Notizen (optional)"
+            className="w-full px-3 py-1.5 rounded-lg border border-border text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
+        </div>
+        <div className="grid grid-cols-2 gap-2 mb-2">
+          <input value={vehicle} onChange={e => setVehicle(e.target.value)} placeholder="Fahrzeug"
+            className="px-3 py-1.5 rounded-lg border border-border text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
+          <input value={licensePlate} onChange={e => setLicensePlate(e.target.value)} placeholder="Kennzeichen"
+            className="px-3 py-1.5 rounded-lg border border-border text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
         </div>
         <div className="flex gap-2 justify-end">
           <button onClick={handleCancel} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs text-muted-foreground hover:bg-secondary border border-border">
@@ -145,7 +172,7 @@ function GuestRow({ guest, allGuests, onDelete, onUpdate }) {
           {guest.first_name?.[0]?.toUpperCase()}{guest.last_name?.[0]?.toUpperCase()}
         </div>
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-medium text-foreground">{guest.first_name} {guest.last_name}</span>
             <span
               className="text-[10px] px-1.5 py-0.5 rounded-full text-white"
@@ -160,6 +187,23 @@ function GuestRow({ guest, allGuests, onDelete, onUpdate }) {
               <span className="text-xs text-muted-foreground">
                 Begleitperson von: {companionName.first_name} {companionName.last_name}
               </span>
+            </div>
+          )}
+          {(guest.notes || guest.vehicle || guest.license_plate) && (
+            <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground flex-wrap">
+              {guest.notes && (
+                <span className="flex items-center gap-1 bg-gray-100 px-1.5 py-0.5 rounded">
+                  <FileText className="w-3 h-3" /> {guest.notes}
+                </span>
+              )}
+              {guest.vehicle && (
+                <span className="flex items-center gap-1 bg-gray-100 px-1.5 py-0.5 rounded">
+                  <Car className="w-3 h-3" /> {guest.vehicle}
+                </span>
+              )}
+              {guest.license_plate && (
+                <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-mono">{guest.license_plate}</span>
+              )}
             </div>
           )}
         </div>
@@ -194,6 +238,9 @@ export default function GuestsPage() {
   const [lastName, setLastName] = useState('');
   const [guestType, setGuestType] = useState('erwachsener');
   const [companionOf, setCompanionOf] = useState('');
+  const [notes, setNotes] = useState('');
+  const [vehicle, setVehicle] = useState('');
+  const [licensePlate, setLicensePlate] = useState('');
   const [adding, setAdding] = useState(false);
   const [editingEvent, setEditingEvent] = useState(false);
   const [eventName, setEventName] = useState('');
@@ -214,6 +261,9 @@ export default function GuestsPage() {
       .finally(() => setLoading(false));
   }, [eventId]);
 
+  // Filter to show only non-staff guests
+  const guestList = guests.filter(g => !g.is_staff);
+
   const handleAddGuest = async (e) => {
     e.preventDefault();
     if (!firstName.trim() && !lastName.trim()) { toast.error('Bitte Name eingeben'); return; }
@@ -224,9 +274,14 @@ export default function GuestsPage() {
         last_name: lastName.trim(),
         guest_type: guestType,
         companion_of: companionOf || null,
+        is_staff: false,
+        notes: notes.trim(),
+        vehicle: vehicle.trim(),
+        license_plate: licensePlate.trim(),
       });
       setGuests(prev => [...prev, res.data].sort((a, b) => a.last_name.localeCompare(b.last_name)));
       setFirstName(''); setLastName(''); setGuestType('erwachsener'); setCompanionOf('');
+      setNotes(''); setVehicle(''); setLicensePlate('');
       toast.success('Gast hinzugefügt');
     } catch { toast.error('Fehler beim Hinzufügen'); }
     finally { setAdding(false); }
@@ -273,9 +328,9 @@ export default function GuestsPage() {
   if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground font-serif animate-pulse">Laden...</div>;
 
   const totalCapacity = event ? event.table_count * event.seats_per_table : 0;
-  const adultsCount = guests.filter(g => g.guest_type !== 'kind').length;
-  const kidsCount = guests.filter(g => g.guest_type === 'kind').length;
-  const companionsCount = guests.filter(g => g.companion_of).length;
+  const adultsCount = guestList.filter(g => g.guest_type !== 'kind').length;
+  const kidsCount = guestList.filter(g => g.guest_type === 'kind').length;
+  const companionsCount = guestList.filter(g => g.companion_of).length;
 
   return (
     <div className="min-h-screen bg-background" data-testid="guests-page">
@@ -346,10 +401,18 @@ export default function GuestsPage() {
                   <select data-testid="companion-select" value={companionOf} onChange={e => setCompanionOf(e.target.value)}
                     className="w-full px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-white">
                     <option value="">– Keine –</option>
-                    {guests.map(g => (
+                    {guestList.map(g => (
                       <option key={g.id} value={g.id}>{g.first_name} {g.last_name}</option>
                     ))}
                   </select>
+                </div>
+                <input data-testid="notes-input" type="text" value={notes} onChange={e => setNotes(e.target.value)}
+                  placeholder="Notizen (optional)" className="w-full px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                <div className="grid grid-cols-2 gap-2">
+                  <input data-testid="vehicle-input" type="text" value={vehicle} onChange={e => setVehicle(e.target.value)}
+                    placeholder="Fahrzeug" className="px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                  <input data-testid="license-input" type="text" value={licensePlate} onChange={e => setLicensePlate(e.target.value)}
+                    placeholder="Kennzeichen" className="px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
                 </div>
                 <button data-testid="add-guest-btn" type="submit" disabled={adding}
                   className="w-full py-3 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary/90 active:scale-95 transition-all flex items-center justify-center gap-2">
@@ -373,7 +436,7 @@ export default function GuestsPage() {
             {/* Stats */}
             <div className="grid grid-cols-3 gap-3 mb-4">
               {[
-                { label: 'Gesamt', value: guests.length, color: '#7D8F69' },
+                { label: 'Gesamt', value: guestList.length, color: '#7D8F69' },
                 { label: 'Erwachsene', value: adultsCount, color: '#7D8F69' },
                 { label: 'Kinder', value: kidsCount, color: '#3B82F6' },
               ].map(s => (
@@ -388,7 +451,7 @@ export default function GuestsPage() {
               <div className="flex items-center justify-between px-4 py-4 border-b border-border">
                 <h2 className="font-serif text-lg">
                   Gästeliste
-                  <span className="ml-2 text-sm font-sans font-normal text-muted-foreground">({guests.length})</span>
+                  <span className="ml-2 text-sm font-sans font-normal text-muted-foreground">({guestList.length})</span>
                 </h2>
                 <div className="text-xs text-muted-foreground">
                   {totalCapacity - guests.length > 0 ? `${totalCapacity - guests.length} freie Plätze` :
@@ -396,17 +459,17 @@ export default function GuestsPage() {
                 </div>
               </div>
 
-              {guests.length === 0 ? (
+              {guestList.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center px-6">
                   <Users className="w-10 h-10 text-muted-foreground/30 mb-3" />
                   <p className="text-muted-foreground text-sm">Noch keine Gäste vorhanden.</p>
                 </div>
               ) : (
-                groupGuests(guests).map(guest => (
+                groupGuests(guestList).map(guest => (
                   <GuestRow
                     key={guest.id}
                     guest={guest}
-                    allGuests={guests}
+                    allGuests={guestList}
                     onDelete={handleDeleteGuest}
                     onUpdate={handleUpdateGuest}
                   />
@@ -414,7 +477,7 @@ export default function GuestsPage() {
               )}
             </div>
 
-            {guests.length > 0 && (
+            {guestList.length > 0 && (
               <div className="mt-4 flex justify-end">
                 <button
                   data-testid="go-to-seating-btn"

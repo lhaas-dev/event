@@ -44,6 +44,29 @@ const checkin = {
   resetAll: (eventId) => axios.post(`${BASE}/events/${eventId}/guests/checkin-reset`, {}, { headers: getHeaders() }),
 };
 
+const menu = {
+  list: (eventId) => axios.get(`${BASE}/events/${eventId}/menu`, { headers: getHeaders() }),
+  add: (eventId, data) => axios.post(`${BASE}/events/${eventId}/menu`, data, { headers: getHeaders() }),
+  update: (eventId, itemId, data) => axios.put(`${BASE}/events/${eventId}/menu/${itemId}`, data, { headers: getHeaders() }),
+  delete: (eventId, itemId) => axios.delete(`${BASE}/events/${eventId}/menu/${itemId}`, { headers: getHeaders() }),
+};
+
+const visitor = {
+  events: {
+    list: () => axios.get(`${BASE}/visitor/events`, { headers: getHeaders() }),
+    get: (id) => axios.get(`${BASE}/visitor/events/${id}`, { headers: getHeaders() }),
+  },
+  guests: {
+    list: (eventId) => axios.get(`${BASE}/visitor/events/${eventId}/guests`, { headers: getHeaders() }),
+  },
+  seating: {
+    get: (eventId) => axios.get(`${BASE}/visitor/events/${eventId}/seating`, { headers: getHeaders() }),
+  },
+  menu: {
+    get: (eventId) => axios.get(`${BASE}/visitor/events/${eventId}/menu`, { headers: getHeaders() }),
+  },
+};
+
 const admin = {
   users: {
     list: () => axios.get(`${BASE}/admin/users`, { headers: getHeaders() }),
@@ -53,4 +76,4 @@ const admin = {
   }
 };
 
-export default { auth, events, guests, seating, checkin, admin };
+export default { auth, events, guests, seating, checkin, menu, visitor, admin };

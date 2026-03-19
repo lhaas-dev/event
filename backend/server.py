@@ -86,7 +86,7 @@ class UserCreate(BaseModel):
 class AdminUserCreate(BaseModel):
     username: str
     password: str
-    role: str = "user"
+    role: str = "user"  # "admin", "user", "visitor"
 
 class AdminUserUpdate(BaseModel):
     password: str
@@ -106,6 +106,10 @@ class GuestCreate(BaseModel):
     last_name: str
     guest_type: str = "erwachsener"   # "erwachsener" | "kind"
     companion_of: Optional[str] = None  # guest_id of the main guest
+    is_staff: bool = False
+    notes: Optional[str] = None
+    vehicle: Optional[str] = None
+    license_plate: Optional[str] = None
 
 class GuestUpdate(BaseModel):
     first_name: Optional[str] = None
@@ -113,6 +117,27 @@ class GuestUpdate(BaseModel):
     guest_type: Optional[str] = None
     companion_of: Optional[str] = None
     checked_in: Optional[bool] = None
+    is_staff: Optional[bool] = None
+    notes: Optional[str] = None
+    vehicle: Optional[str] = None
+    license_plate: Optional[str] = None
+
+
+# ---- Menu Models ----
+
+class MenuItemCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+    category: str = "essen"  # "essen" | "getraenke"
+    price: Optional[float] = None
+    allergens: Optional[str] = None
+
+class MenuItemUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    category: Optional[str] = None
+    price: Optional[float] = None
+    allergens: Optional[str] = None
 
 class SeatingPlanSave(BaseModel):
     tables: List[List[Optional[str]]]
@@ -171,13 +196,15 @@ async def admin_create_user(data: AdminUserCreate, admin=Depends(get_admin_user)
         raise HTTPException(400, "Benutzername bereits vergeben")
     if len(data.password) < 4:
         raise HTTPException(400, "Passwort muss mindestens 4 Zeichen haben")
+    valid_roles = ("admin", "user", "visitor")
+    role = data.role if data.role in valid_roles else "user"
     result = await db.users.insert_one({
         "username": data.username,
         "hashed_password": hash_password(data.password),
-        "role": data.role if data.role in ("admin", "user") else "user",
+        "role": role,
         "created_at": datetime.now(timezone.utc).isoformat()
     })
-    return {"id": str(result.inserted_id), "username": data.username, "role": data.role}
+    return {"id": str(result.inserted_id), "username": data.username, "role": role}
 
 @api_router.delete("/admin/users/{user_id}")
 async def admin_delete_user(user_id: str, admin=Depends(get_admin_user)):
@@ -283,6 +310,10 @@ async def add_guest(event_id: str, data: GuestCreate, current_user=Depends(get_c
         "last_name": data.last_name.strip(),
         "guest_type": data.guest_type,
         "companion_of": data.companion_of,
+        "is_staff": data.is_staff,
+        "notes": data.notes or "",
+        "vehicle": data.vehicle or "",
+        "license_plate": data.license_plate or "",
         "checked_in": False,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
@@ -293,9 +324,13 @@ async def add_guest(event_id: str, data: GuestCreate, current_user=Depends(get_c
 
 @api_router.put("/events/{event_id}/guests/{guest_id}")
 async def update_guest(event_id: str, guest_id: str, data: GuestUpdate, current_user=Depends(get_current_user)):
-    updates = {k: v for k, v in data.model_dump().items() if v is not None}
+    updates = {}
+    data_dict = data.model_dump()
+    for k, v in data_dict.items():
+        if v is not None:
+            updates[k] = v
     # Allow explicitly setting companion_of to None
-    if "companion_of" in data.model_dump():
+    if "companion_of" in data_dict:
         updates["companion_of"] = data.companion_of
     try:
         await db.guests.update_one({"_id": ObjectId(guest_id)}, {"$set": updates})
@@ -339,6 +374,11 @@ async def import_guests(event_id: str, file: UploadFile = File(...), current_use
         first_name = (row.get("Vorname") or row.get("vorname") or row.get("first_name") or "").strip()
         last_name = (row.get("Nachname") or row.get("nachname") or row.get("last_name") or "").strip()
         guest_type = (row.get("Typ") or row.get("typ") or row.get("type") or "erwachsener").strip().lower()
+        is_staff_str = (row.get("Mitarbeiter") or row.get("mitarbeiter") or row.get("staff") or "").strip().lower()
+        is_staff = is_staff_str in ("ja", "yes", "1", "true")
+        notes = (row.get("Notizen") or row.get("notizen") or row.get("notes") or "").strip()
+        vehicle = (row.get("Fahrzeug") or row.get("fahrzeug") or row.get("vehicle") or "").strip()
+        license_plate = (row.get("Kennzeichen") or row.get("kennzeichen") or row.get("license_plate") or "").strip()
         if guest_type not in ("erwachsener", "kind"):
             guest_type = "erwachsener"
         if first_name or last_name:
@@ -348,6 +388,10 @@ async def import_guests(event_id: str, file: UploadFile = File(...), current_use
                 "last_name": last_name,
                 "guest_type": guest_type,
                 "companion_of": None,
+                "is_staff": is_staff,
+                "notes": notes,
+                "vehicle": vehicle,
+                "license_plate": license_plate,
                 "checked_in": False,
                 "created_at": datetime.now(timezone.utc).isoformat()
             })
@@ -387,6 +431,105 @@ async def save_seating(event_id: str, data: SeatingPlanSave, current_user=Depend
         upsert=True
     )
     return {"ok": True}
+
+
+# ---- Menu Routes ----
+
+@api_router.get("/events/{event_id}/menu")
+async def list_menu_items(event_id: str, current_user=Depends(get_current_user)):
+    items = await db.menu_items.find({"event_id": event_id}).sort("category", 1).to_list(500)
+    return [doc(item) for item in items]
+
+@api_router.post("/events/{event_id}/menu")
+async def add_menu_item(event_id: str, data: MenuItemCreate, current_user=Depends(get_current_user)):
+    item_doc = {
+        "event_id": event_id,
+        "name": data.name.strip(),
+        "description": data.description or "",
+        "category": data.category,
+        "price": data.price,
+        "allergens": data.allergens or "",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    result = await db.menu_items.insert_one(item_doc)
+    item_doc["id"] = str(result.inserted_id)
+    del item_doc["_id"]
+    return item_doc
+
+@api_router.put("/events/{event_id}/menu/{item_id}")
+async def update_menu_item(event_id: str, item_id: str, data: MenuItemUpdate, current_user=Depends(get_current_user)):
+    updates = {k: v for k, v in data.model_dump().items() if v is not None}
+    try:
+        await db.menu_items.update_one({"_id": ObjectId(item_id), "event_id": event_id}, {"$set": updates})
+        item = await db.menu_items.find_one({"_id": ObjectId(item_id)})
+    except Exception:
+        raise HTTPException(404, "Menüeintrag nicht gefunden")
+    return doc(item)
+
+@api_router.delete("/events/{event_id}/menu/{item_id}")
+async def delete_menu_item(event_id: str, item_id: str, current_user=Depends(get_current_user)):
+    try:
+        await db.menu_items.delete_one({"_id": ObjectId(item_id), "event_id": event_id})
+    except Exception:
+        pass
+    return {"ok": True}
+
+
+# ---- Visitor View Routes (Read-Only for visitors) ----
+
+async def get_visitor_or_user(creds: HTTPAuthorizationCredentials = Depends(security)):
+    """Allow visitors, users, and admins to access"""
+    payload = decode_token(creds.credentials)
+    user_id = payload.get("sub")
+    try:
+        user = await db.users.find_one({"_id": ObjectId(user_id)})
+    except Exception:
+        raise HTTPException(status_code=401, detail="Ungültiger Token")
+    if not user:
+        raise HTTPException(status_code=401, detail="Benutzer nicht gefunden")
+    return user
+
+@api_router.get("/visitor/events")
+async def visitor_list_events(current_user=Depends(get_visitor_or_user)):
+    """List all events for visitor view - visitors see all events"""
+    events = await db.events.find({}).sort("created_at", -1).to_list(200)
+    result = []
+    for e in events:
+        e = doc(e)
+        e["guest_count"] = await db.guests.count_documents({"event_id": e["id"]})
+        result.append(e)
+    return result
+
+@api_router.get("/visitor/events/{event_id}")
+async def visitor_get_event(event_id: str, current_user=Depends(get_visitor_or_user)):
+    """Get event details for visitor view"""
+    try:
+        event = await db.events.find_one({"_id": ObjectId(event_id)})
+    except Exception:
+        raise HTTPException(404, "Event nicht gefunden")
+    if not event:
+        raise HTTPException(404, "Event nicht gefunden")
+    return doc(event)
+
+@api_router.get("/visitor/events/{event_id}/guests")
+async def visitor_list_guests(event_id: str, current_user=Depends(get_visitor_or_user)):
+    """List guests for visitor view (read-only)"""
+    guests = await db.guests.find({"event_id": event_id}).sort("last_name", 1).to_list(2000)
+    return [doc(g) for g in guests]
+
+@api_router.get("/visitor/events/{event_id}/seating")
+async def visitor_get_seating(event_id: str, current_user=Depends(get_visitor_or_user)):
+    """Get seating plan for visitor view (read-only)"""
+    plan = await db.seating_plans.find_one({"event_id": event_id})
+    if not plan:
+        return {"event_id": event_id, "tables": []}
+    return {"event_id": event_id, "tables": plan.get("tables", [])}
+
+@api_router.get("/visitor/events/{event_id}/menu")
+async def visitor_get_menu(event_id: str, current_user=Depends(get_visitor_or_user)):
+    """Get menu for visitor view (read-only)"""
+    items = await db.menu_items.find({"event_id": event_id}).sort("category", 1).to_list(500)
+    return [doc(item) for item in items]
 
 
 app.include_router(api_router)

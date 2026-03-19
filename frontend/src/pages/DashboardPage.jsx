@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/api';
 import { toast } from 'sonner';
-import { Users, Settings, Calendar, Trash2, Plus, LogOut, Layout, Shield } from 'lucide-react';
+import { Users, Settings, Calendar, Trash2, Plus, LogOut, Layout, Shield, Eye } from 'lucide-react';
 
 function Header() {
   const { user, logout, isAdmin } = useAuth();
@@ -52,6 +52,11 @@ function EventCard({ event, onDelete, onClick }) {
     setDeleting(false);
   };
 
+  const handleVisitorView = (e) => {
+    e.stopPropagation();
+    window.open(`/besucher/${event.id}`, '_blank');
+  };
+
   return (
     <div
       data-testid={`event-card-${event.id}`}
@@ -62,14 +67,24 @@ function EventCard({ event, onDelete, onClick }) {
         <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
           <Calendar className="w-5 h-5 text-primary" />
         </div>
-        <button
-          data-testid={`delete-event-${event.id}`}
-          onClick={handleDelete}
-          disabled={deleting}
-          className="opacity-0 group-hover:opacity-100 p-1.5 text-muted-foreground hover:text-destructive transition-all rounded-lg hover:bg-destructive/10"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+          <button
+            data-testid={`visitor-view-${event.id}`}
+            onClick={handleVisitorView}
+            title="Besucher-Ansicht"
+            className="p-1.5 text-muted-foreground hover:text-blue-600 transition-all rounded-lg hover:bg-blue-50"
+          >
+            <Eye className="w-4 h-4" />
+          </button>
+          <button
+            data-testid={`delete-event-${event.id}`}
+            onClick={handleDelete}
+            disabled={deleting}
+            className="p-1.5 text-muted-foreground hover:text-destructive transition-all rounded-lg hover:bg-destructive/10"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
       </div>
       <h3 className="font-serif text-xl text-foreground mb-1 truncate">{event.name}</h3>
       <div className="flex flex-wrap gap-3 mt-3">
