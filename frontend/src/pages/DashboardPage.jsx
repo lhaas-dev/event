@@ -106,8 +106,10 @@ function CreateEventModal({ onClose, onCreate }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" data-testid="create-event-modal">
-      <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-xl animate-fade-in-up">
+    <div data-testid="create-event-modal">
+      <div className="fixed inset-0 bg-black/40 z-50" onClick={onClose} />
+      <div className="fixed inset-0 flex items-center justify-center z-50 p-4 pointer-events-none">
+      <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-xl animate-fade-in-up pointer-events-auto" onClick={e => e.stopPropagation()}>
         <h2 className="font-serif text-2xl mb-6">Neues Event erstellen</h2>
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
@@ -160,6 +162,7 @@ function CreateEventModal({ onClose, onCreate }) {
             </button>
           </div>
         </form>
+      </div>
       </div>
     </div>
   );
