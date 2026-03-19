@@ -2,70 +2,70 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '@/api';
 import { toast } from 'sonner';
-import { ArrowLeft, Printer, Download, Users, Settings, Layout } from 'lucide-react';
+import { ArrowLeft, Printer, Download, Users, Settings, Layout, Link2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
-// SVG-based round table for print/export
+const TYPE_COLORS = { erwachsener: '#7D8F69', kind: '#3B82F6' };
+
 function ExportTable({ tableIndex, seats, guestMap }) {
   const seatCount = seats.length;
-  const svgSize = 240;
+  const svgSize = 280;
   const cx = svgSize / 2;
   const cy = svgSize / 2;
-  const tableR = 56;
-  const seatR = Math.max(18, Math.min(26, Math.floor(160 / seatCount)));
+  const tableR = 58;
+  const seatR = Math.max(16, Math.min(24, Math.floor(150 / seatCount)));
   const seatDist = tableR + seatR + 6;
+  const labelDist = seatDist + seatR + 14;
 
   return (
-    <div className="flex flex-col items-center">
-      <svg width={svgSize} height={svgSize} viewBox={`0 0 ${svgSize} ${svgSize}`} style={{ overflow: 'visible' }}>
-        {/* Table */}
-        <circle cx={cx} cy={cy} r={tableR} fill="#FDF6E3" stroke="#C5A059" strokeWidth={2} />
-        <text x={cx} y={cy - 6} textAnchor="middle" fontSize={11} fontFamily="Manrope,sans-serif" fontWeight="600" fill="#8B6914">
-          Tisch
-        </text>
-        <text x={cx} y={cy + 9} textAnchor="middle" fontSize={14} fontFamily="Playfair Display,serif" fontWeight="600" fill="#8B6914">
-          {tableIndex + 1}
-        </text>
+    <svg width={svgSize} height={svgSize} viewBox={`0 0 ${svgSize} ${svgSize}`} style={{ overflow: 'visible' }}>
+      {/* Table */}
+      <circle cx={cx} cy={cy} r={tableR} fill="#FDF6E3" stroke="#C5A059" strokeWidth={2} />
+      <text x={cx} y={cy - 6} textAnchor="middle" fontSize={11} fontFamily="Manrope,sans-serif" fontWeight="600" fill="#8B6914">Tisch</text>
+      <text x={cx} y={cy + 10} textAnchor="middle" fontSize={16} fontFamily="Playfair Display,serif" fontWeight="600" fill="#8B6914">{tableIndex + 1}</text>
 
-        {/* Seats */}
-        {seats.map((guestId, seatIdx) => {
-          const angle = (2 * Math.PI / seatCount) * seatIdx - Math.PI / 2;
-          const sx = cx + seatDist * Math.cos(angle);
-          const sy = cy + seatDist * Math.sin(angle);
-          const guest = guestId ? guestMap[guestId] : null;
+      {seats.map((guestId, seatIdx) => {
+        const angle = (2 * Math.PI / seatCount) * seatIdx - Math.PI / 2;
+        const sx = cx + seatDist * Math.cos(angle);
+        const sy = cy + seatDist * Math.sin(angle);
+        const lx = cx + labelDist * Math.cos(angle);
+        const ly = cy + labelDist * Math.sin(angle);
+        const guest = guestId ? guestMap[guestId] : null;
+        const color = guest ? (TYPE_COLORS[guest.guest_type] || '#7D8F69') : '#EAE8E4';
+        const stroke = guest ? (guest.guest_type === 'kind' ? '#2563EB' : '#5F7050') : '#C5C5C0';
 
-          return (
-            <g key={seatIdx}>
-              <circle
-                cx={sx} cy={sy} r={seatR}
-                fill={guest ? '#7D8F69' : '#EAE8E4'}
-                stroke={guest ? '#5F7050' : '#C5C5C0'}
-                strokeWidth={1.5}
-              />
-              {guest ? (
-                <>
-                  <text x={sx} y={sy - 3} textAnchor="middle" fontSize={7} fontFamily="Manrope,sans-serif" fill="white" fontWeight="700">
-                    {guest.first_name?.[0]}{guest.last_name?.[0]}
-                  </text>
-                  <text x={sx} y={sy + 6} textAnchor="middle" fontSize={5.5} fontFamily="Manrope,sans-serif" fill="rgba(255,255,255,0.85)">
-                    {guest.first_name?.substring(0, 5)}
-                  </text>
-                </>
-              ) : (
-                <text x={sx} y={sy + 1} textAnchor="middle" fontSize={10} fontFamily="Manrope,sans-serif" fill="#aaa">—</text>
-              )}
-            </g>
-          );
-        })}
-      </svg>
-    </div>
+        return (
+          <g key={seatIdx}>
+            <circle cx={sx} cy={sy} r={seatR} fill={color} stroke={stroke} strokeWidth={1.5} />
+            {guest ? (
+              <>
+                <text x={sx} y={sy + 1} textAnchor="middle" fontSize={7.5} fontFamily="Manrope,sans-serif" fill="white" fontWeight="700" dominantBaseline="middle">
+                  {guest.first_name?.[0]}{guest.last_name?.[0]}
+                </text>
+                {/* Name label radially outward */}
+                <text x={lx} y={ly - 5} textAnchor="middle" fontSize={7.5} fontFamily="Manrope,sans-serif" fill="#1A1A1A" fontWeight="500">
+                  {guest.first_name}
+                </text>
+                <text x={lx} y={ly + 5} textAnchor="middle" fontSize={7.5} fontFamily="Manrope,sans-serif" fill="#1A1A1A" fontWeight="500">
+                  {guest.last_name}
+                </text>
+                {guest.guest_type === 'kind' && (
+                  <text x={lx} y={ly + 14} textAnchor="middle" fontSize={6} fontFamily="Manrope,sans-serif" fill="#3B82F6" fontWeight="600">Kind</text>
+                )}
+              </>
+            ) : (
+              <text x={sx} y={sx + 1} textAnchor="middle" fontSize={10} fontFamily="Manrope,sans-serif" fill="#aaa" dominantBaseline="middle">—</text>
+            )}
+          </g>
+        );
+      })}
+    </svg>
   );
 }
 
 export default function ExportPage() {
   const { eventId } = useParams();
   const navigate = useNavigate();
-  const { logout } = useAuth();
   const exportRef = useRef(null);
   const [event, setEvent] = useState(null);
   const [guests, setGuests] = useState([]);
@@ -94,10 +94,6 @@ export default function ExportPage() {
   const guestMap = guests.reduce((acc, g) => ({ ...acc, [g.id]: g }), {});
   const assignedCount = tables.flat().filter(Boolean).length;
 
-  const handlePrint = () => {
-    window.print();
-  };
-
   const handleDownloadPDF = async () => {
     setDownloading(true);
     try {
@@ -105,17 +101,9 @@ export default function ExportPage() {
         import('html2canvas'),
         import('jspdf'),
       ]);
-
       const element = exportRef.current;
       if (!element) return;
-
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#FFFFFF',
-        logging: false,
-      });
-
+      const canvas = await html2canvas(element, { scale: 2, useCORS: true, backgroundColor: '#FFFFFF', logging: false });
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
       const pW = pdf.internal.pageSize.getWidth();
@@ -123,35 +111,34 @@ export default function ExportPage() {
       const aspect = canvas.width / canvas.height;
       let iW = pW - 20, iH = iW / aspect;
       if (iH > pH - 20) { iH = pH - 20; iW = iH * aspect; }
-      const x = (pW - iW) / 2;
-      const y = (pH - iH) / 2;
+      pdf.addImage(imgData, 'PNG', (pW - iW) / 2, (pH - iH) / 2, iW, iH);
 
-      pdf.addImage(imgData, 'PNG', x, y, iW, iH);
-
-      // Second page: list view
+      // Page 2: list
       pdf.addPage();
-      pdf.setFontSize(18);
-      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(18); pdf.setFont('helvetica', 'bold');
       pdf.text(event?.name || 'Tischplan', 14, 18);
-      pdf.setFontSize(10);
-      pdf.setFont('helvetica', 'normal');
-      let yPos = 30;
+      pdf.setFontSize(9); pdf.setFont('helvetica', 'normal');
+      pdf.text(`${guests.length} Gäste · ${assignedCount} platziert`, 14, 26);
+      let yPos = 36;
+      const pH2 = pdf.internal.pageSize.getHeight();
       tables.forEach((seats, tIdx) => {
         const occupied = seats.filter(Boolean);
-        if (yPos > pH - 20) { pdf.addPage(); yPos = 20; }
-        pdf.setFont('helvetica', 'bold');
-        pdf.setFontSize(11);
-        pdf.text(`Tisch ${tIdx + 1}`, 14, yPos);
-        pdf.setFont('helvetica', 'normal');
-        pdf.setFontSize(9);
-        yPos += 6;
-        if (occupied.length === 0) {
-          pdf.text('(Leer)', 20, yPos);
-          yPos += 5;
-        } else {
+        if (yPos > pH2 - 20) { pdf.addPage(); yPos = 20; }
+        pdf.setFont('helvetica', 'bold'); pdf.setFontSize(11);
+        pdf.text(`Tisch ${tIdx + 1}`, 14, yPos); yPos += 6;
+        pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9);
+        if (occupied.length === 0) { pdf.text('(Leer)', 20, yPos); yPos += 5; }
+        else {
           occupied.forEach(gId => {
             const g = guestMap[gId];
-            if (g) { pdf.text(`• ${g.first_name} ${g.last_name}`, 20, yPos); yPos += 5; }
+            if (g) {
+              const type = g.guest_type === 'kind' ? '[K]' : '[E]';
+              const companion = g.companion_of && guestMap[g.companion_of]
+                ? ` (Begl. v. ${guestMap[g.companion_of].first_name} ${guestMap[g.companion_of].last_name})`
+                : '';
+              pdf.text(`• ${g.first_name} ${g.last_name} ${type}${companion}`, 20, yPos);
+              yPos += 5;
+            }
           });
         }
         yPos += 4;
@@ -171,47 +158,35 @@ export default function ExportPage() {
 
   return (
     <div className="min-h-screen bg-background" data-testid="export-page">
-      {/* Header */}
       <header className="bg-white border-b border-border px-6 py-3 flex items-center gap-4 sticky top-0 z-50 no-print">
         <button onClick={() => navigate('/dashboard')} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mr-2">
           <ArrowLeft className="w-4 h-4" /> Dashboard
         </button>
         <div className="flex items-center gap-2 flex-1">
-          <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
-            <Layout className="w-3 h-3 text-white" />
-          </div>
+          <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center"><Layout className="w-3 h-3 text-white" /></div>
           <span className="font-serif text-lg truncate max-w-[200px]">{event?.name}</span>
         </div>
         <nav className="flex gap-1">
-          <Link to={`/event/${eventId}/gaeste`} className="px-4 py-2 rounded-xl text-sm font-medium text-muted-foreground hover:bg-secondary transition-colors flex items-center gap-1.5">
+          <Link to={`/event/${eventId}/gaeste`} className="px-4 py-2 rounded-xl text-sm font-medium text-muted-foreground hover:bg-secondary flex items-center gap-1.5">
             <Users className="w-3.5 h-3.5" /> Gäste
           </Link>
-          <Link to={`/event/${eventId}/tischplan`} className="px-4 py-2 rounded-xl text-sm font-medium text-muted-foreground hover:bg-secondary transition-colors flex items-center gap-1.5">
+          <Link to={`/event/${eventId}/tischplan`} className="px-4 py-2 rounded-xl text-sm font-medium text-muted-foreground hover:bg-secondary flex items-center gap-1.5">
             <Settings className="w-3.5 h-3.5" /> Tischplan
           </Link>
         </nav>
         <div className="flex gap-2 ml-2">
-          <button
-            data-testid="print-btn"
-            onClick={handlePrint}
-            className="flex items-center gap-2 px-4 py-2 border border-border rounded-xl text-sm text-foreground hover:bg-secondary transition-all"
-          >
-            <Printer className="w-3.5 h-3.5" />
-            Drucken
+          <button data-testid="print-btn" onClick={() => window.print()}
+            className="flex items-center gap-2 px-4 py-2 border border-border rounded-xl text-sm text-foreground hover:bg-secondary transition-all">
+            <Printer className="w-3.5 h-3.5" /> Drucken
           </button>
-          <button
-            data-testid="download-pdf-btn"
-            onClick={handleDownloadPDF}
-            disabled={downloading}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary/90 active:scale-95 transition-all disabled:opacity-50"
-          >
+          <button data-testid="download-pdf-btn" onClick={handleDownloadPDF} disabled={downloading}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary/90 active:scale-95 transition-all disabled:opacity-50">
             <Download className="w-3.5 h-3.5" />
             {downloading ? 'Erstellen...' : 'PDF herunterladen'}
           </button>
         </div>
       </header>
 
-      {/* Export Content */}
       <div className="p-6">
         <div ref={exportRef} id="export-content" className="bg-white rounded-2xl p-8 max-w-7xl mx-auto">
           {/* Title */}
@@ -220,21 +195,27 @@ export default function ExportPage() {
             <p className="text-muted-foreground text-sm mt-2">
               {tables.length} Tische · {event?.seats_per_table} Plätze/Tisch · {guests.length} Gäste · {assignedCount} platziert
             </p>
+            <div className="flex justify-center gap-6 mt-3">
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="w-3 h-3 rounded-full inline-block" style={{ background: '#7D8F69' }} />
+                {guests.filter(g => g.guest_type !== 'kind').length} Erwachsene
+              </span>
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="w-3 h-3 rounded-full inline-block" style={{ background: '#3B82F6' }} />
+                {guests.filter(g => g.guest_type === 'kind').length} Kinder
+              </span>
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Link2 className="w-3 h-3" />
+                {guests.filter(g => g.companion_of).length} Begleitpersonen
+              </span>
+            </div>
           </div>
 
           {/* Graphical Tables */}
-          <div
-            className="grid gap-6 mb-10"
-            style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}
-            data-testid="export-tables-grid"
-          >
+          <div className="grid gap-4 mb-10" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }} data-testid="export-tables-grid">
             {tables.map((seats, tIdx) => (
               <div key={tIdx} className="flex flex-col items-center p-4 bg-background rounded-xl border border-border">
-                <ExportTable
-                  tableIndex={tIdx}
-                  seats={seats}
-                  guestMap={guestMap}
-                />
+                <ExportTable tableIndex={tIdx} seats={seats} guestMap={guestMap} />
                 <div className="mt-1 text-xs text-muted-foreground">
                   {seats.filter(Boolean).length}/{seats.length} Plätze besetzt
                 </div>
@@ -242,10 +223,10 @@ export default function ExportPage() {
             ))}
           </div>
 
-          {/* List View */}
+          {/* Text List */}
           <div className="border-t border-border pt-8">
             <h2 className="font-serif text-2xl mb-6">Sitzliste nach Tisch</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="export-list">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" data-testid="export-list">
               {tables.map((seats, tIdx) => {
                 const occupied = seats.map((gId, sIdx) => ({ gId, sIdx })).filter(s => s.gId);
                 return (
@@ -260,17 +241,30 @@ export default function ExportPage() {
                     {occupied.length === 0 ? (
                       <p className="text-xs text-muted-foreground italic">Noch keine Gäste</p>
                     ) : (
-                      <ul className="space-y-1">
-                        {occupied.map(({ gId, sIdx }) => {
+                      <ul className="space-y-1.5">
+                        {occupied.map(({ gId }) => {
                           const g = guestMap[gId];
-                          return g ? (
-                            <li key={sIdx} className="flex items-center gap-2 text-sm">
-                              <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0">
+                          if (!g) return null;
+                          const companionOf = g.companion_of && guestMap[g.companion_of];
+                          return (
+                            <li key={gId} className="flex items-start gap-2 text-sm">
+                              <div
+                                className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0 mt-0.5"
+                                style={{ background: TYPE_COLORS[g.guest_type] || '#7D8F69' }}
+                              >
                                 {g.first_name?.[0]}{g.last_name?.[0]}
                               </div>
-                              {g.first_name} {g.last_name}
+                              <div>
+                                <div>{g.first_name} {g.last_name}</div>
+                                {companionOf && (
+                                  <div className="text-xs text-muted-foreground flex items-center gap-1">
+                                    <Link2 className="w-2.5 h-2.5" />
+                                    Begl. v. {companionOf.first_name} {companionOf.last_name}
+                                  </div>
+                                )}
+                              </div>
                             </li>
-                          ) : null;
+                          );
                         })}
                       </ul>
                     )}

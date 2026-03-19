@@ -11,7 +11,7 @@ export function AuthProvider({ children }) {
     const token = localStorage.getItem('token');
     if (token) {
       api.auth.me()
-        .then(res => setUser(res.data))
+        .then(res => setUser(res.data))  // includes id, username, role
         .catch(() => {
           localStorage.removeItem('token');
           setUser(null);
@@ -24,14 +24,9 @@ export function AuthProvider({ children }) {
 
   const login = async (username, password) => {
     const res = await api.auth.login({ username, password });
-    const { access_token, username: uname } = res.data;
+    const { access_token, username: uname, role } = res.data;
     localStorage.setItem('token', access_token);
-    setUser({ username: uname });
-  };
-
-  const register = async (username, password) => {
-    await api.auth.register({ username, password });
-    await login(username, password);
+    setUser({ username: uname, role });
   };
 
   const logout = () => {
@@ -39,8 +34,10 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  const isAdmin = user?.role === 'admin';
+
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, loading, isAdmin }}>
       {children}
     </AuthContext.Provider>
   );

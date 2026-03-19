@@ -7,6 +7,7 @@ import DashboardPage from '@/pages/DashboardPage';
 import GuestsPage from '@/pages/GuestsPage';
 import SeatingPlanPage from '@/pages/SeatingPlanPage';
 import ExportPage from '@/pages/ExportPage';
+import AdminPage from '@/pages/AdminPage';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -21,12 +22,21 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
+function AdminRoute({ children }) {
+  const { user, loading, isAdmin } = useAuth();
+  if (loading) return null;
+  if (!user) return <Navigate to="/" replace />;
+  if (!isAdmin) return <Navigate to="/dashboard" replace />;
+  return children;
+}
+
 function AppRoutes() {
   const { user } = useAuth();
   return (
     <Routes>
       <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
       <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+      <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
       <Route path="/event/:eventId/gaeste" element={<ProtectedRoute><GuestsPage /></ProtectedRoute>} />
       <Route path="/event/:eventId/tischplan" element={<ProtectedRoute><SeatingPlanPage /></ProtectedRoute>} />
       <Route path="/event/:eventId/export" element={<ProtectedRoute><ExportPage /></ProtectedRoute>} />

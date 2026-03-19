@@ -8,7 +8,6 @@ const getHeaders = () => {
 };
 
 const auth = {
-  register: (data) => axios.post(`${BASE}/auth/register`, data),
   login: (data) => axios.post(`${BASE}/auth/login`, data),
   me: () => axios.get(`${BASE}/auth/me`, { headers: getHeaders() }),
 };
@@ -40,4 +39,13 @@ const seating = {
   save: (eventId, data) => axios.put(`${BASE}/events/${eventId}/seating`, data, { headers: getHeaders() }),
 };
 
-export default { auth, events, guests, seating };
+const admin = {
+  users: {
+    list: () => axios.get(`${BASE}/admin/users`, { headers: getHeaders() }),
+    create: (data) => axios.post(`${BASE}/admin/users`, data, { headers: getHeaders() }),
+    delete: (id) => axios.delete(`${BASE}/admin/users/${id}`, { headers: getHeaders() }),
+    updatePassword: (id, data) => axios.put(`${BASE}/admin/users/${id}/password`, data, { headers: getHeaders() }),
+  }
+};
+
+export default { auth, events, guests, seating, admin };

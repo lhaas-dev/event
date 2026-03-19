@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/api';
 import { toast } from 'sonner';
-import { Users, Settings, Calendar, Trash2, Plus, LogOut, Layout } from 'lucide-react';
+import { Users, Settings, Calendar, Trash2, Plus, LogOut, Layout, Shield } from 'lucide-react';
 
 function Header() {
-  const { user, logout } = useAuth();
+  const { user, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
   return (
     <header className="bg-white border-b border-border px-8 py-4 flex items-center justify-between sticky top-0 z-50">
@@ -18,6 +18,16 @@ function Header() {
       </div>
       <div className="flex items-center gap-4">
         <span className="text-sm text-muted-foreground">{user?.username}</span>
+        {isAdmin && (
+          <button
+            data-testid="admin-link"
+            onClick={() => navigate('/admin')}
+            className="flex items-center gap-1.5 text-sm text-accent hover:text-accent/80 transition-colors font-medium"
+          >
+            <Shield className="w-4 h-4" />
+            Admin
+          </button>
+        )}
         <button
           data-testid="logout-btn"
           onClick={() => { logout(); navigate('/'); }}
