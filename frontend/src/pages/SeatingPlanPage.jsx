@@ -6,7 +6,7 @@ import {
 } from '@dnd-kit/core';
 import api from '@/api';
 import { toast } from 'sonner';
-import { Save, FileDown, ArrowLeft, Users, Layout, Settings } from 'lucide-react';
+import { Save, FileDown, ArrowLeft, Users, Layout, Settings, PanelLeftClose, PanelLeftOpen, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 // ─── Type colors ───────────────────────────────────────────────────
@@ -111,7 +111,7 @@ function DroppableSeat({ id, guest, size, guestMap }) {
 }
 
 // ─── Round Table with full names ──────────────────────────────────
-const CONTAINER = 360;
+const CONTAINER = 300;
 
 function RoundTable({ tableIndex, seats, guestMap }) {
   const cx = CONTAINER / 2;
@@ -223,6 +223,7 @@ export default function SeatingPlanPage() {
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [activeId, setActiveId] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -298,78 +299,103 @@ export default function SeatingPlanPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col" data-testid="seating-plan-page">
-      <header className="bg-white border-b border-border px-6 py-3 flex items-center gap-4 sticky top-0 z-50">
-        <button onClick={() => navigate('/dashboard')} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mr-2">
-          <ArrowLeft className="w-4 h-4" /> Dashboard
+      <header className="bg-white border-b border-border px-3 md:px-6 py-3 flex items-center gap-2 md:gap-4 sticky top-0 z-50">
+        <button onClick={() => navigate('/dashboard')} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <ArrowLeft className="w-4 h-4" /><span className="hidden sm:inline text-sm">Dashboard</span>
         </button>
-        <div className="flex items-center gap-2 flex-1">
-          <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center"><Layout className="w-3 h-3 text-white" /></div>
-          <span className="font-serif text-lg truncate max-w-[200px]">{event?.name}</span>
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center flex-shrink-0"><Layout className="w-3 h-3 text-white" /></div>
+          <span className="font-serif text-base md:text-lg truncate max-w-[140px] md:max-w-[220px]">{event?.name}</span>
         </div>
-        <nav className="flex gap-1">
-          <Link to={`/event/${eventId}/gaeste`} className="px-4 py-2 rounded-xl text-sm font-medium text-muted-foreground hover:bg-secondary transition-colors flex items-center gap-1.5">
-            <Users className="w-3.5 h-3.5" /> Gäste
+        <nav className="flex gap-0.5 md:gap-1">
+          <Link to={`/event/${eventId}/gaeste`} className="px-2 md:px-3 py-2 rounded-xl text-xs md:text-sm font-medium text-muted-foreground hover:bg-secondary flex items-center gap-1">
+            <Users className="w-3.5 h-3.5" /><span className="hidden lg:inline"> Gäste</span>
           </Link>
-          <Link to={`/event/${eventId}/tischplan`} className="px-4 py-2 rounded-xl text-sm font-medium bg-primary text-white flex items-center gap-1.5">
-            <Settings className="w-3.5 h-3.5" /> Tischplan
+          <Link to={`/event/${eventId}/tischplan`} className="px-2 md:px-3 py-2 rounded-xl text-xs md:text-sm font-medium bg-primary text-white flex items-center gap-1">
+            <Settings className="w-3.5 h-3.5" /><span className="hidden lg:inline"> Tischplan</span>
           </Link>
-          <Link to={`/event/${eventId}/export`} className="px-4 py-2 rounded-xl text-sm font-medium text-muted-foreground hover:bg-secondary transition-colors flex items-center gap-1.5">
-            <FileDown className="w-3.5 h-3.5" /> Export
+          <Link to={`/event/${eventId}/einlass`} className="px-2 md:px-3 py-2 rounded-xl text-xs md:text-sm font-medium text-muted-foreground hover:bg-secondary flex items-center gap-1">
+            <CheckCircle2 className="w-3.5 h-3.5" /><span className="hidden lg:inline"> Einlass</span>
+          </Link>
+          <Link to={`/event/${eventId}/export`} className="px-2 md:px-3 py-2 rounded-xl text-xs md:text-sm font-medium text-muted-foreground hover:bg-secondary flex items-center gap-1">
+            <FileDown className="w-3.5 h-3.5" /><span className="hidden lg:inline"> Export</span>
           </Link>
         </nav>
-        <div className="flex items-center gap-2 ml-2">
-          {hasChanges && <span className="text-xs text-accent font-medium animate-pulse">Ungespeichert</span>}
+        <div className="flex items-center gap-1 md:gap-2 ml-1">
+          {hasChanges && <span className="text-[10px] md:text-xs text-accent font-medium animate-pulse hidden sm:inline">Ungespeichert</span>}
           <button
             data-testid="save-seating-btn"
             onClick={handleSave}
             disabled={saving || !hasChanges}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary/90 active:scale-95 transition-all disabled:opacity-40"
+            className="flex items-center gap-1 md:gap-2 px-3 md:px-4 py-2 bg-primary text-white rounded-xl text-xs md:text-sm font-medium hover:bg-primary/90 active:scale-95 transition-all disabled:opacity-40"
           >
             <Save className="w-3.5 h-3.5" />
-            {saving ? 'Speichern...' : 'Speichern'}
-          </button>
-          <button
-            data-testid="export-btn"
-            onClick={() => navigate(`/event/${eventId}/export`)}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-border text-foreground rounded-xl text-sm hover:bg-secondary transition-all"
-          >
-            <FileDown className="w-3.5 h-3.5" /> Export
+            <span className="hidden sm:inline">{saving ? 'Speichern...' : 'Speichern'}</span>
           </button>
         </div>
       </header>
 
       <div className="flex flex-1 overflow-hidden">
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-          {/* Sidebar */}
-          <div className="w-72 flex-shrink-0 bg-white border-r border-border flex flex-col" data-testid="unassigned-panel">
-            <div className="px-5 py-4 border-b border-border">
-              <h2 className="font-serif text-base">Nicht platziert</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">{unassigned.length} von {guests.length} Gästen</p>
-              <div className="flex gap-2 mt-2">
-                <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                  <span className="w-3 h-3 rounded-full inline-block" style={{ background: '#7D8F69' }} /> Erwachsener
-                </span>
-                <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                  <span className="w-3 h-3 rounded-full inline-block" style={{ background: '#3B82F6' }} /> Kind
-                </span>
+          {/* Sidebar with toggle */}
+          <div
+            className={`flex-shrink-0 bg-white border-r border-border flex flex-col transition-all duration-300 ${sidebarOpen ? 'w-64 md:w-72' : 'w-12'}`}
+            data-testid="unassigned-panel"
+          >
+            {/* Sidebar header with toggle */}
+            <div className={`border-b border-border flex items-center ${sidebarOpen ? 'px-4 py-4 justify-between' : 'px-2 py-4 justify-center'}`}>
+              {sidebarOpen && (
+                <div>
+                  <h2 className="font-serif text-sm">Nicht platziert</h2>
+                  <p className="text-[10px] text-muted-foreground">{unassigned.length}/{guests.length}</p>
+                </div>
+              )}
+              <button
+                data-testid="sidebar-toggle"
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
+                title={sidebarOpen ? 'Sidebar schließen' : 'Sidebar öffnen'}
+              >
+                {sidebarOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeftOpen className="w-4 h-4" />}
+              </button>
+            </div>
+
+            {sidebarOpen && (
+              <>
+                <div className="flex gap-3 px-4 py-2 border-b border-border/50">
+                  <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                    <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: '#7D8F69' }} /> Erw.
+                  </span>
+                  <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                    <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: '#3B82F6' }} /> Kind
+                  </span>
+                </div>
+                <div className="flex-1 overflow-hidden flex flex-col px-3 py-3">
+                  <UnassignedZone guests={unassigned} guestMap={guestMap} />
+                </div>
+                <div className="px-4 py-2 border-t border-border bg-background">
+                  <div className="text-[10px] text-muted-foreground">
+                    {assignedIds.size} platziert · {unassigned.length} offen
+                  </div>
+                </div>
+              </>
+            )}
+
+            {!sidebarOpen && (
+              <div className="flex-1 flex flex-col items-center py-3 gap-2">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <span className="text-xs font-bold text-primary">{unassigned.length}</span>
+                </div>
               </div>
-            </div>
-            <div className="flex-1 overflow-hidden flex flex-col px-3 py-3">
-              <UnassignedZone guests={unassigned} guestMap={guestMap} />
-            </div>
-            <div className="px-4 py-3 border-t border-border bg-background">
-              <div className="text-xs text-muted-foreground">
-                {assignedIds.size} platziert · {unassigned.length} offen · {tables.flat().filter(s => !s).length} freie Plätze
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Tables Grid */}
-          <div className="flex-1 overflow-auto p-6" data-testid="tables-grid">
+          <div className="flex-1 overflow-auto p-3 md:p-6" data-testid="tables-grid">
             {tables.length === 0 ? (
               <div className="flex items-center justify-center h-full text-muted-foreground">Keine Tische konfiguriert</div>
             ) : (
-              <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${CONTAINER}px, 1fr))` }}>
+              <div className="grid gap-2 md:gap-3" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${CONTAINER}px, 1fr))` }}>
                 {tables.map((seats, tIdx) => (
                   <div key={tIdx} className="flex flex-col items-center" data-testid={`table-${tIdx}`}>
                     <RoundTable tableIndex={tIdx} seats={seats} guestMap={guestMap} />

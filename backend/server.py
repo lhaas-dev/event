@@ -112,6 +112,7 @@ class GuestUpdate(BaseModel):
     last_name: Optional[str] = None
     guest_type: Optional[str] = None
     companion_of: Optional[str] = None
+    checked_in: Optional[bool] = None
 
 class SeatingPlanSave(BaseModel):
     tables: List[List[Optional[str]]]
@@ -282,6 +283,7 @@ async def add_guest(event_id: str, data: GuestCreate, current_user=Depends(get_c
         "last_name": data.last_name.strip(),
         "guest_type": data.guest_type,
         "companion_of": data.companion_of,
+        "checked_in": False,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     result = await db.guests.insert_one(guest_doc)
@@ -346,10 +348,26 @@ async def import_guests(event_id: str, file: UploadFile = File(...), current_use
                 "last_name": last_name,
                 "guest_type": guest_type,
                 "companion_of": None,
+                "checked_in": False,
                 "created_at": datetime.now(timezone.utc).isoformat()
             })
             count += 1
     return {"imported": count}
+
+
+@api_router.put("/events/{event_id}/guests/{guest_id}/checkin")
+async def toggle_checkin(event_id: str, guest_id: str, current_user=Depends(get_current_user)):
+    try:
+        guest = await db.guests.find_one({"_id": ObjectId(guest_id), "event_id": event_id})
+        if not guest:
+            raise HTTPException(404, "Gast nicht gefunden")
+        new_status = not guest.get("checked_in", False)
+        await db.guests.update_one({"_id": ObjectId(guest_id)}, {"$set": {"checked_in": new_status}})
+        return {"checked_in": new_status}
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(500, "Fehler beim Aktualisieren")
 
 
 # ---- Seating Plan Routes ----

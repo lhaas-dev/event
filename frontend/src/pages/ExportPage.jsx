@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '@/api';
 import { toast } from 'sonner';
-import { ArrowLeft, Printer, Download, Users, Settings, Layout, Link2 } from 'lucide-react';
+import { ArrowLeft, Printer, Download, Users, Settings, Layout, Link2, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 const TYPE_COLORS = { erwachsener: '#7D8F69', kind: '#3B82F6' };
@@ -167,11 +167,14 @@ export default function ExportPage() {
           <span className="font-serif text-lg truncate max-w-[200px]">{event?.name}</span>
         </div>
         <nav className="flex gap-1">
-          <Link to={`/event/${eventId}/gaeste`} className="px-4 py-2 rounded-xl text-sm font-medium text-muted-foreground hover:bg-secondary flex items-center gap-1.5">
-            <Users className="w-3.5 h-3.5" /> Gäste
+          <Link to={`/event/${eventId}/gaeste`} className="px-2 md:px-4 py-2 rounded-xl text-xs md:text-sm font-medium text-muted-foreground hover:bg-secondary flex items-center gap-1">
+            <Users className="w-3.5 h-3.5" /><span className="hidden sm:inline"> Gäste</span>
           </Link>
-          <Link to={`/event/${eventId}/tischplan`} className="px-4 py-2 rounded-xl text-sm font-medium text-muted-foreground hover:bg-secondary flex items-center gap-1.5">
-            <Settings className="w-3.5 h-3.5" /> Tischplan
+          <Link to={`/event/${eventId}/tischplan`} className="px-2 md:px-4 py-2 rounded-xl text-xs md:text-sm font-medium text-muted-foreground hover:bg-secondary flex items-center gap-1">
+            <Settings className="w-3.5 h-3.5" /><span className="hidden sm:inline"> Tischplan</span>
+          </Link>
+          <Link to={`/event/${eventId}/einlass`} className="px-2 md:px-4 py-2 rounded-xl text-xs md:text-sm font-medium text-muted-foreground hover:bg-secondary flex items-center gap-1">
+            <CheckCircle2 className="w-3.5 h-3.5" /><span className="hidden sm:inline"> Einlass</span>
           </Link>
         </nav>
         <div className="flex gap-2 ml-2">

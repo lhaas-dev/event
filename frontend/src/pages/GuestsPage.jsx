@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '@/api';
 import { toast } from 'sonner';
-import { ArrowLeft, Plus, Trash2, Upload, Users, Settings, FileDown, Layout, Edit2, Check, X, Link2 } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Upload, Users, Settings, FileDown, Layout, Edit2, Check, X, Link2, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 const TYPE_COLORS = { erwachsener: '#7D8F69', kind: '#3B82F6' };
@@ -22,23 +22,49 @@ function NavBar({ event, activeTab }) {
         </div>
         <span className="font-serif text-lg truncate max-w-[200px]">{event?.name || '...'}</span>
       </div>
-      <nav className="flex gap-1">
+      <nav className="flex gap-0.5 md:gap-1">
         <Link to={`/event/${event?.id}/gaeste`}
-          className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-1.5 ${activeTab === 'gaeste' ? 'bg-primary text-white' : 'text-muted-foreground hover:bg-secondary'}`}>
-          <Users className="w-3.5 h-3.5" /> Gäste
+          className={`px-2 md:px-4 py-2 rounded-xl text-xs md:text-sm font-medium transition-colors flex items-center gap-1 ${activeTab === 'gaeste' ? 'bg-primary text-white' : 'text-muted-foreground hover:bg-secondary'}`}>
+          <Users className="w-3.5 h-3.5" /><span className="hidden sm:inline"> Gäste</span>
         </Link>
         <Link to={`/event/${event?.id}/tischplan`}
-          className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-1.5 ${activeTab === 'tischplan' ? 'bg-primary text-white' : 'text-muted-foreground hover:bg-secondary'}`}>
-          <Settings className="w-3.5 h-3.5" /> Tischplan
+          className={`px-2 md:px-4 py-2 rounded-xl text-xs md:text-sm font-medium transition-colors flex items-center gap-1 ${activeTab === 'tischplan' ? 'bg-primary text-white' : 'text-muted-foreground hover:bg-secondary'}`}>
+          <Settings className="w-3.5 h-3.5" /><span className="hidden sm:inline"> Tischplan</span>
+        </Link>
+        <Link to={`/event/${event?.id}/einlass`}
+          className={`px-2 md:px-4 py-2 rounded-xl text-xs md:text-sm font-medium transition-colors flex items-center gap-1 ${activeTab === 'einlass' ? 'bg-primary text-white' : 'text-muted-foreground hover:bg-secondary'}`}>
+          <CheckCircle2 className="w-3.5 h-3.5" /><span className="hidden sm:inline"> Einlass</span>
         </Link>
         <Link to={`/event/${event?.id}/export`}
-          className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors flex items-center gap-1.5 ${activeTab === 'export' ? 'bg-primary text-white' : 'text-muted-foreground hover:bg-secondary'}`}>
-          <FileDown className="w-3.5 h-3.5" /> Export
+          className={`px-2 md:px-4 py-2 rounded-xl text-xs md:text-sm font-medium transition-colors flex items-center gap-1 ${activeTab === 'export' ? 'bg-primary text-white' : 'text-muted-foreground hover:bg-secondary'}`}>
+          <FileDown className="w-3.5 h-3.5" /><span className="hidden sm:inline"> Export</span>
         </Link>
       </nav>
       <button onClick={() => { logout(); navigate('/'); }} className="text-xs text-muted-foreground hover:text-foreground ml-2">Abmelden</button>
     </header>
   );
+}
+
+// Group guests: companions appear right after their main guest
+function groupGuests(guests) {
+  const companionMap = {};
+  guests.filter(g => g.companion_of).forEach(g => {
+    if (!companionMap[g.companion_of]) companionMap[g.companion_of] = [];
+    companionMap[g.companion_of].push(g);
+  });
+  const mainGuests = guests
+    .filter(g => !g.companion_of)
+    .sort((a, b) => a.last_name.localeCompare(b.last_name, 'de'));
+  const result = [];
+  for (const g of mainGuests) {
+    result.push(g);
+    (companionMap[g.id] || [])
+      .sort((a, b) => a.last_name.localeCompare(b.last_name, 'de'))
+      .forEach(c => result.push(c));
+  }
+  const placedIds = new Set(result.map(g => g.id));
+  guests.filter(g => g.companion_of && !placedIds.has(g.id)).forEach(g => result.push(g));
+  return result;
 }
 
 // Inline edit row for a guest
@@ -73,7 +99,7 @@ function GuestRow({ guest, allGuests, onDelete, onUpdate }) {
 
   if (editing) {
     return (
-      <div className="px-4 py-3 bg-primary/5 border-b border-border" data-testid={`guest-edit-row-${guest.id}`}>
+      <div className={`px-4 py-3 bg-primary/5 border-b border-border ${guest.companion_of ? 'pl-10' : ''}`} data-testid={`guest-edit-row-${guest.id}`}>
         <div className="grid grid-cols-2 gap-2 mb-2">
           <input value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="Vorname"
             className="px-3 py-1.5 rounded-lg border border-border text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
@@ -109,7 +135,7 @@ function GuestRow({ guest, allGuests, onDelete, onUpdate }) {
   return (
     <div
       data-testid={`guest-row-${guest.id}`}
-      className="flex items-center justify-between px-4 py-3 hover:bg-background transition-colors border-b border-border/50"
+      className={`flex items-center justify-between px-4 py-3 hover:bg-background transition-colors border-b border-border/50 ${guest.companion_of ? 'pl-10 bg-background/40' : ''}`}
     >
       <div className="flex items-center gap-3">
         <div
@@ -376,7 +402,7 @@ export default function GuestsPage() {
                   <p className="text-muted-foreground text-sm">Noch keine Gäste vorhanden.</p>
                 </div>
               ) : (
-                guests.map(guest => (
+                groupGuests(guests).map(guest => (
                   <GuestRow
                     key={guest.id}
                     guest={guest}

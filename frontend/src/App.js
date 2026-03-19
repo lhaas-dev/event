@@ -8,6 +8,7 @@ import GuestsPage from '@/pages/GuestsPage';
 import SeatingPlanPage from '@/pages/SeatingPlanPage';
 import ExportPage from '@/pages/ExportPage';
 import AdminPage from '@/pages/AdminPage';
+import CheckinPage from '@/pages/CheckinPage';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -39,6 +40,7 @@ function AppRoutes() {
       <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
       <Route path="/event/:eventId/gaeste" element={<ProtectedRoute><GuestsPage /></ProtectedRoute>} />
       <Route path="/event/:eventId/tischplan" element={<ProtectedRoute><SeatingPlanPage /></ProtectedRoute>} />
+      <Route path="/event/:eventId/einlass" element={<ProtectedRoute><CheckinPage /></ProtectedRoute>} />
       <Route path="/event/:eventId/export" element={<ProtectedRoute><ExportPage /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

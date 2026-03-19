@@ -11,9 +11,12 @@ Einfache Webapp für Tischplanung bei Events. Gäste hinzufügen als Liste und a
 - Auth: Nur Login (kein Register), Admin erstellt Benutzer
 - Login-Bild: Garage Künzler & Sauber AG
 - Event-Name in der App definierbar
+- iPad-optimiert
+- Einlass-Funktion (Gäste abhaken)
+- Begleitpersonen nach Hauptgast in Liste
 
 ## Architecture
-- **Frontend**: React + Tailwind CSS + @dnd-kit (drag & drop) + html2canvas/jspdf (PDF)
+- **Frontend**: React + Tailwind CSS + @dnd-kit + html2canvas/jspdf
 - **Backend**: FastAPI + MongoDB (Motor async)
 - **Auth**: JWT (HS256, 24h) + bcrypt + Rollen (admin/user)
 - **Design**: Elegant Minimalist – Sage Green / Gold / White palette
@@ -21,7 +24,7 @@ Einfache Webapp für Tischplanung bei Events. Gäste hinzufügen als Liste und a
 ## Core Entities
 - **User**: username, hashed_password, role (admin/user)
 - **Event**: user_id, name, table_count, seats_per_table
-- **Guest**: event_id, first_name, last_name, guest_type (erwachsener/kind), companion_of (optional guest_id)
+- **Guest**: event_id, first_name, last_name, guest_type (erwachsener/kind), companion_of (optional guest_id), checked_in (bool)
 - **SeatingPlan**: event_id, tables (2D array)
 
 ## Pages / Routes
@@ -32,6 +35,7 @@ Einfache Webapp für Tischplanung bei Events. Gäste hinzufügen als Liste und a
 | `/admin` | Benutzerverwaltung (nur Admin) |
 | `/event/:id/gaeste` | Gäste-Verwaltung |
 | `/event/:id/tischplan` | Tischplan (Drag & Drop) |
+| `/event/:id/einlass` | Einlass (Gäste abhaken) |
 | `/event/:id/export` | Export / PDF |
 
 ## Default Admin
@@ -39,53 +43,36 @@ Einfache Webapp für Tischplanung bei Events. Gäste hinzufügen als Liste und a
 - Passwort: **admin123**
 - Wird automatisch beim ersten Start erstellt
 
-## API Endpoints
-- `POST /api/auth/login` – Anmelden, JWT erhalten
-- `GET /api/auth/me` – Aktueller Benutzer (inkl. Rolle)
-- `GET/POST /api/admin/users` – Benutzer verwalten (Admin)
-- `DELETE /api/admin/users/:id` – Benutzer löschen
-- `PUT /api/admin/users/:id/password` – Passwort ändern
-- `GET/POST /api/events` – Events
-- `GET/PUT/DELETE /api/events/:id` – Event CRUD
-- `GET/POST /api/events/:id/guests` – Gäste
-- `PUT/DELETE /api/events/:id/guests/:gid` – Gast CRUD
-- `POST /api/events/:id/guests/import` – CSV-Import
-- `GET/PUT /api/events/:id/seating` – Sitzplan
-
 ## What's Been Implemented
 
 ### Phase 1 (Initial)
-- [x] Login-Seite (Split-Screen) + Dashboard + Gästeverwaltung (CSV-Import)
-- [x] Tischplan-Seite mit runden Tischen + Drag & Drop
-- [x] Sitzplan speichern (Datenbank)
-- [x] Export-Seite: SVG-Grafik + Sitzliste + PDF-Download + Drucken
+- [x] Login/Dashboard/Gästeverwaltung (CSV-Import)
+- [x] Tischplan mit Drag & Drop (runde Tische)
+- [x] Export mit SVG + PDF-Download
 
-### Phase 2 (Update)
-- [x] Login-only (kein Register mehr)
-- [x] Garage-Bild auf Login-Seite (Künzler & Sauber AG)
-- [x] Vorname + Nachname bei jedem Tisch-Sitzplatz sichtbar
-- [x] Gast-Typ: Erwachsener (grün) / Kind (blau)
-- [x] Begleitperson-Beziehung: Anzeige in Gästeliste + Export
+### Phase 2
+- [x] Login-only (kein Register)
+- [x] Garage-Bild auf Login-Seite
+- [x] Vorname + Nachname bei jedem Tisch-Sitzplatz
+- [x] Gast-Typ: Erwachsener/Kind (Farbkodierung)
+- [x] Begleitperson-Beziehung + Anzeige
 - [x] Gäste inline editieren
-- [x] Admin-Panel (/admin): Benutzer erstellen/löschen/Passwort ändern
-- [x] Admin-Badge in Header für Admin-Benutzer
-- [x] Rollen-Schutz: /admin nur für Admins
+- [x] Admin-Panel: Benutzer erstellen/löschen/Passwort
 
-## Test Results
-- Backend: 100% (16/16 Tests)
-- Frontend: 100% (alle Features verifiziert)
+### Phase 3 (iPad + Einlass)
+- [x] **iPad-Optimierung**: Responsive Navigation (Icons auf kleinen Screens, Labels auf grossen), kollabierbare Sidebar im Tischplan
+- [x] **Einlass-Seite** (/einlass): Gäste abhaken, Fortschrittsbalken, Suchfilter, Zurücksetzen-Button
+- [x] **Begleitpersonen nach Hauptgast**: In der Gästeliste erscheinen Begleitpersonen immer unter/nach dem Hauptgast, leicht eingerückt
+- [x] Tischplan-Container 300px (passt 3 Spalten auf iPad Landscape)
 
 ## Prioritized Backlog
 ### P1
 - Tische individuell benennen (z.B. "VIP-Tisch")
-- Statistik-Dashboard (Gesamt-Kapazität vs. Gäste)
-- Drag & Drop auf Touch-Geräten optimieren
+- Einlass: Komplett-Check-in einer Begleitgruppe mit einem Tap
 
 ### P2
 - QR-Code pro Tisch generieren
-- Bulk-Löschen von Gästen
-- Gäste zwischen Events übertragen
+- Statistik-Dashboard pro Event
 
 ### P3
-- E-Mail-Einladungen
-- Gäste-App (Gast sucht eigenen Tisch per QR)
+- E-Mail-Einladungen / QR-Gäste-App

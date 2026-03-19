@@ -39,6 +39,11 @@ const seating = {
   save: (eventId, data) => axios.put(`${BASE}/events/${eventId}/seating`, data, { headers: getHeaders() }),
 };
 
+const checkin = {
+  toggle: (eventId, guestId) => axios.put(`${BASE}/events/${eventId}/guests/${guestId}/checkin`, {}, { headers: getHeaders() }),
+  resetAll: (eventId) => axios.post(`${BASE}/events/${eventId}/guests/checkin-reset`, {}, { headers: getHeaders() }),
+};
+
 const admin = {
   users: {
     list: () => axios.get(`${BASE}/admin/users`, { headers: getHeaders() }),
@@ -48,4 +53,4 @@ const admin = {
   }
 };
 
-export default { auth, events, guests, seating, admin };
+export default { auth, events, guests, seating, checkin, admin };
