@@ -18,13 +18,14 @@ Einfache Webapp für Tischplanung bei Events. Gäste hinzufügen als Liste und a
 ## Architecture
 - **Frontend**: React + Tailwind CSS + @dnd-kit + html2canvas/jspdf
 - **Backend**: FastAPI + MongoDB (Motor async)
-- **Auth**: JWT (HS256, 24h) + bcrypt + Rollen (admin/user)
+- **Auth**: JWT (HS256, 24h) + bcrypt + Rollen (admin/user/visitor)
 - **Design**: Elegant Minimalist – Sage Green / Gold / White palette
 
 ## Core Entities
-- **User**: username, hashed_password, role (admin/user)
+- **User**: username, hashed_password, role (admin/user/visitor)
 - **Event**: user_id, name, table_count, seats_per_table
-- **Guest**: event_id, first_name, last_name, guest_type (erwachsener/kind), companion_of (optional guest_id), checked_in (bool)
+- **Guest**: event_id, first_name, last_name, guest_type (erwachsener/kind), companion_of, is_staff, notes, vehicle, license_plate, checked_in
+- **MenuItem**: event_id, name, description, category (essen/getraenke), price, allergens
 - **SeatingPlan**: event_id, tables (2D array)
 
 ## Pages / Routes
@@ -34,9 +35,13 @@ Einfache Webapp für Tischplanung bei Events. Gäste hinzufügen als Liste und a
 | `/dashboard` | Event-Übersicht |
 | `/admin` | Benutzerverwaltung (nur Admin) |
 | `/event/:id/gaeste` | Gäste-Verwaltung |
+| `/event/:id/mitarbeiter` | Mitarbeiter-Verwaltung |
 | `/event/:id/tischplan` | Tischplan (Drag & Drop) |
 | `/event/:id/einlass` | Einlass (Gäste abhaken) |
+| `/event/:id/menu` | Menü-Verwaltung (Essen & Getränke) |
 | `/event/:id/export` | Export / PDF |
+| `/besucher/:id` | Besucher-Ansicht (Tisch-Suche) |
+| `/besucher/:id/menu` | Besucher-Menü-Ansicht |
 
 ## Default Admin
 - Benutzername: **admin**
@@ -65,6 +70,23 @@ Einfache Webapp für Tischplanung bei Events. Gäste hinzufügen als Liste und a
 - [x] **Begleitpersonen nach Hauptgast**: In der Gästeliste erscheinen Begleitpersonen immer unter/nach dem Hauptgast, leicht eingerückt
 - [x] Tischplan-Container 300px (passt 3 Spalten auf iPad Landscape)
 
+### Phase 4 (Mitarbeiter, Menü, Besucher-Ansicht) - 19.03.2026
+- [x] **Mitarbeiter-Liste**: Separate Seite für Mitarbeiter und deren Begleiter (werden an Tischen mit Gästen platziert)
+- [x] **Gäste alphabetisch sortiert**: Nach Nachname sortiert
+- [x] **Kompaktere Check-in-Liste**: Kleinere Zeilen mit Abkürzungen (E/K, MA)
+- [x] **Neue Gast-Felder**: Notizen, Fahrzeug, Kennzeichen für Gäste und Mitarbeiter
+- [x] **Menü-Tab**: Essen und Getränke verwalten (Name, Beschreibung, Preis, Allergene)
+- [x] **Besucher-Ansicht**: Read-only Ansicht wo Gäste ihren Tisch finden können
+  - Visitor-Rolle für Benutzer
+  - Event-Auswahl
+  - Namenssuche zeigt zugewiesenen Tisch
+  - Menü-Ansicht
+- [x] **Dashboard Besucher-Vorschau**: Eye-Icon öffnet Besucher-Ansicht für jedes Event
+
+## Test Credentials
+- **Admin**: admin / admin123
+- **Besucher**: gast / gast123
+
 ## Prioritized Backlog
 ### P1
 - Tische individuell benennen (z.B. "VIP-Tisch")
@@ -73,6 +95,7 @@ Einfache Webapp für Tischplanung bei Events. Gäste hinzufügen als Liste und a
 ### P2
 - QR-Code pro Tisch generieren
 - Statistik-Dashboard pro Event
+- PDF-Export verbessern
 
 ### P3
 - E-Mail-Einladungen / QR-Gäste-App
