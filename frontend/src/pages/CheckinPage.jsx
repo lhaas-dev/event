@@ -121,8 +121,12 @@ export default function CheckinPage() {
   }, [eventId]);
 
   const guestMap = guests.reduce((acc, g) => ({ ...acc, [g.id]: g }), {});
-  const checkedInCount = guests.filter(g => g.checked_in).length;
-  const totalCount = guests.length;
+  
+  // Filter out staff - only guests for check-in
+  const guestsOnly = guests.filter(g => !g.is_staff);
+  
+  const checkedInCount = guestsOnly.filter(g => g.checked_in).length;
+  const totalCount = guestsOnly.length;
   const progress = totalCount > 0 ? (checkedInCount / totalCount) * 100 : 0;
 
   const handleToggle = useCallback(async (guestId) => {
@@ -139,7 +143,7 @@ export default function CheckinPage() {
     setResetting(true);
     try {
       await Promise.all(
-        guests.filter(g => g.checked_in).map(g => api.checkin.toggle(eventId, g.id))
+        guestsOnly.filter(g => g.checked_in).map(g => api.checkin.toggle(eventId, g.id))
       );
       setGuests(prev => prev.map(g => ({ ...g, checked_in: false })));
       toast.success('Alle Check-ins zurückgesetzt');
@@ -150,9 +154,9 @@ export default function CheckinPage() {
     }
   };
 
-  // Group and filter
-  const grouped = groupGuests(guests);
-  const companionIds = new Set(guests.filter(g => g.companion_of).map(g => g.id));
+  // Group and filter - only non-staff guests
+  const grouped = groupGuests(guestsOnly);
+  const companionIds = new Set(guestsOnly.filter(g => g.companion_of).map(g => g.id));
 
   const filtered = search.trim()
     ? grouped.filter(g =>

@@ -2,10 +2,10 @@ import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '@/api';
 import { toast } from 'sonner';
-import { Search, MapPin, Users, UtensilsCrossed, Wine, Layout, LogOut } from 'lucide-react';
+import { Search, MapPin, Users, UtensilsCrossed, Wine, Layout, LogOut, User } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
-const TYPE_COLORS = { erwachsener: '#7D8F69', kind: '#3B82F6' };
+const TYPE_COLORS = { erwachsener: '#7D8F69', kind: '#3B82F6', staff: '#D97706' };
 
 function VisitorHeader({ event, activeTab, eventId }) {
   const { logout } = useAuth();
@@ -236,10 +236,10 @@ export default function VisitorViewPage() {
         )}
 
         {/* Stats */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-4 mb-8">
           <div className="bg-white border border-border rounded-xl p-4 text-center">
             <Users className="w-6 h-6 text-primary mx-auto mb-2" />
-            <div className="text-2xl font-serif font-semibold text-foreground">{guests.length}</div>
+            <div className="text-2xl font-serif font-semibold text-foreground">{guests.filter(g => !g.is_staff).length}</div>
             <div className="text-xs text-muted-foreground">Gäste</div>
           </div>
           <div className="bg-white border border-border rounded-xl p-4 text-center">
@@ -247,6 +247,65 @@ export default function VisitorViewPage() {
             <div className="text-2xl font-serif font-semibold text-foreground">{event?.table_count || 0}</div>
             <div className="text-xs text-muted-foreground">Tische</div>
           </div>
+        </div>
+
+        {/* Tables Overview */}
+        <div className="mt-8">
+          <h2 className="font-serif text-xl text-foreground mb-4 text-center">Tischübersicht</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {(seating.tables || []).map((tableSeats, tableIdx) => {
+              const tableGuests = (tableSeats || [])
+                .filter(Boolean)
+                .map(guestId => guestMap[guestId])
+                .filter(Boolean);
+              
+              return (
+                <div 
+                  key={tableIdx}
+                  className="bg-white border border-border rounded-xl p-4"
+                  data-testid={`visitor-table-${tableIdx}`}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="font-serif font-semibold text-foreground">Tisch {tableIdx + 1}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {tableGuests.length}/{event?.seats_per_table || 6}
+                    </span>
+                  </div>
+                  {tableGuests.length === 0 ? (
+                    <div className="text-xs text-muted-foreground text-center py-2">Keine Gäste</div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {tableGuests.map(g => (
+                        <div 
+                          key={g.id} 
+                          className="flex items-center gap-2"
+                        >
+                          <div
+                            className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0"
+                            style={{ background: g.is_staff ? TYPE_COLORS.staff : TYPE_COLORS[g.guest_type] || '#7D8F69' }}
+                          >
+                            {g.first_name?.[0]?.toUpperCase()}
+                          </div>
+                          <span className="text-xs text-foreground truncate">
+                            {g.first_name} {g.last_name}
+                          </span>
+                          {g.is_staff && (
+                            <span className="text-[9px] px-1 py-0.5 rounded bg-amber-100 text-amber-700 flex-shrink-0">MA</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          
+          {(!seating.tables || seating.tables.length === 0) && (
+            <div className="text-center text-muted-foreground py-8">
+              Noch keine Tische konfiguriert
+            </div>
+          )}
         </div>
       </main>
     </div>

@@ -81,7 +81,11 @@ Einfache Webapp für Tischplanung bei Events. Gäste hinzufügen als Liste und a
   - Event-Auswahl
   - Namenssuche zeigt zugewiesenen Tisch
   - Menü-Ansicht
+  - **Tischübersicht mit allen Tischen und deren Gästen**
 - [x] **Dashboard Besucher-Vorschau**: Eye-Icon öffnet Besucher-Ansicht für jedes Event
+- [x] **Dashboard zeigt Gäste und Mitarbeiter getrennt**: Separate Zähler für Gäste und Mitarbeiter
+- [x] **Mitarbeiter nicht auf Einlass-Liste**: Nur Gäste werden beim Check-in angezeigt
+- [x] **Mitarbeiter mit anderer Farbe im Tischplan**: Amber/Orange Farbe für Mitarbeiter zur besseren Unterscheidung
 
 ## Test Credentials
 - **Admin**: admin / admin123

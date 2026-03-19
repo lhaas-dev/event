@@ -239,7 +239,9 @@ async def list_events(current_user=Depends(get_current_user)):
     result = []
     for e in events:
         e = doc(e)
-        e["guest_count"] = await db.guests.count_documents({"event_id": e["id"]})
+        # Count guests (non-staff) and staff separately
+        e["guest_count"] = await db.guests.count_documents({"event_id": e["id"], "is_staff": {"$ne": True}})
+        e["staff_count"] = await db.guests.count_documents({"event_id": e["id"], "is_staff": True})
         result.append(e)
     return result
 
@@ -257,6 +259,7 @@ async def create_event(data: EventCreate, current_user=Depends(get_current_user)
     event_doc["id"] = str(result.inserted_id)
     del event_doc["_id"]
     event_doc["guest_count"] = 0
+    event_doc["staff_count"] = 0
     return event_doc
 
 @api_router.get("/events/{event_id}")

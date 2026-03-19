@@ -10,14 +10,20 @@ import { Save, FileDown, ArrowLeft, Users, Layout, Settings, PanelLeftClose, Pan
 import { useAuth } from '@/context/AuthContext';
 
 // ─── Type colors ───────────────────────────────────────────────────
-const seatBg = (type) => type === 'kind' ? '#3B82F6' : '#7D8F69';
-const seatBorder = (type) => type === 'kind' ? '#2563EB' : '#5F7050';
+const seatBg = (guest) => {
+  if (guest?.is_staff) return '#D97706'; // Amber for staff
+  return guest?.guest_type === 'kind' ? '#3B82F6' : '#7D8F69';
+};
+const seatBorder = (guest) => {
+  if (guest?.is_staff) return '#B45309'; // Darker amber for staff
+  return guest?.guest_type === 'kind' ? '#2563EB' : '#5F7050';
+};
 
 // ─── Draggable Guest Chip ───────────────────────────────────────────
 function DraggableGuest({ guest, compact = false, guestMap }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: guest.id });
   const initials = `${guest.first_name?.[0] || ''}${guest.last_name?.[0] || ''}`.toUpperCase();
-  const typeLabel = guest.guest_type === 'kind' ? 'Kind' : 'Erw.';
+  const typeLabel = guest.is_staff ? 'MA' : (guest.guest_type === 'kind' ? 'Kind' : 'Erw.');
   const companionName = guest.companion_of && guestMap?.[guest.companion_of]
     ? `${guestMap[guest.companion_of].first_name} ${guestMap[guest.companion_of].last_name}`
     : null;
@@ -28,8 +34,8 @@ function DraggableGuest({ guest, compact = false, guestMap }) {
         ref={setNodeRef}
         {...listeners}
         {...attributes}
-        title={`${guest.first_name} ${guest.last_name}${companionName ? ' (Begl. v. ' + companionName + ')' : ''}`}
-        style={{ opacity: isDragging ? 0.1 : 1, background: seatBg(guest.guest_type) }}
+        title={`${guest.first_name} ${guest.last_name}${guest.is_staff ? ' (Mitarbeiter)' : ''}${companionName ? ' (Begl. v. ' + companionName + ')' : ''}`}
+        style={{ opacity: isDragging ? 0.1 : 1, background: seatBg(guest) }}
         className="w-full h-full rounded-full flex items-center justify-center text-white text-xs font-bold cursor-grab select-none transition-opacity"
         data-testid={`draggable-guest-${guest.id}`}
       >
@@ -44,12 +50,12 @@ function DraggableGuest({ guest, compact = false, guestMap }) {
       {...listeners}
       {...attributes}
       style={{ opacity: isDragging ? 0.1 : 1 }}
-      className="flex items-center gap-2.5 px-3 py-2.5 bg-white border border-border rounded-xl hover:border-primary/40 hover:bg-primary/5 cursor-grab select-none transition-all"
+      className={`flex items-center gap-2.5 px-3 py-2.5 bg-white border rounded-xl hover:border-primary/40 hover:bg-primary/5 cursor-grab select-none transition-all ${guest.is_staff ? 'border-amber-300' : 'border-border'}`}
       data-testid={`draggable-guest-${guest.id}`}
     >
       <div
         className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-        style={{ background: seatBg(guest.guest_type) }}
+        style={{ background: seatBg(guest) }}
       >
         {initials}
       </div>
@@ -58,7 +64,7 @@ function DraggableGuest({ guest, compact = false, guestMap }) {
         <div className="flex items-center gap-1.5 mt-0.5">
           <span
             className="text-[10px] px-1.5 py-0.5 rounded-full text-white font-medium"
-            style={{ background: seatBg(guest.guest_type) }}
+            style={{ background: seatBg(guest) }}
           >
             {typeLabel}
           </span>
@@ -78,11 +84,12 @@ function GuestOverlay({ guest }) {
     <div className="flex items-center gap-2.5 px-3 py-2.5 bg-white border border-primary shadow-xl rounded-xl opacity-95 cursor-grabbing">
       <div
         className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold"
-        style={{ background: seatBg(guest.guest_type) }}
+        style={{ background: seatBg(guest) }}
       >
         {initials}
       </div>
       <span className="text-sm text-foreground">{guest.first_name} {guest.last_name}</span>
+      {guest.is_staff && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">MA</span>}
     </div>
   );
 }
@@ -99,8 +106,8 @@ function DroppableSeat({ id, guest, size, guestMap }) {
       style={{
         width: size, height: size,
         borderRadius: '50%',
-        border: isOver ? '2px solid #C5A059' : hasGuest ? `2px solid ${seatBorder(guest?.guest_type)}` : '2px dashed #C0C0BB',
-        background: isOver ? 'rgba(197,160,89,0.12)' : hasGuest ? `${seatBg(guest?.guest_type)}18` : '#F7F7F5',
+        border: isOver ? '2px solid #C5A059' : hasGuest ? `2px solid ${seatBorder(guest)}` : '2px dashed #C0C0BB',
+        background: isOver ? 'rgba(197,160,89,0.12)' : hasGuest ? `${seatBg(guest)}18` : '#F7F7F5',
         transition: 'border-color 0.15s, background 0.15s',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}
@@ -175,9 +182,9 @@ function RoundTable({ tableIndex, seats, guestMap }) {
                 <span style={{ fontSize: 8, color: '#1A1A1A', fontFamily: 'Manrope,sans-serif', fontWeight: 500 }}>
                   {guest.first_name} {guest.last_name}
                 </span>
-                {guest.guest_type === 'kind' && (
-                  <div style={{ fontSize: 7, color: '#3B82F6', marginTop: 1, fontWeight: 600 }}>Kind</div>
-                )}
+              <div style={{ fontSize: 7, color: guest.is_staff ? '#D97706' : '#3B82F6', marginTop: 1, fontWeight: 600 }}>
+                                  {guest.is_staff ? 'Mitarbeiter' : (guest.guest_type === 'kind' ? 'Kind' : '')}
+                                </div>
               </div>
             )}
           </Fragment>
@@ -368,6 +375,9 @@ export default function SeatingPlanPage() {
                   </span>
                   <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
                     <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: '#3B82F6' }} /> Kind
+                  </span>
+                  <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                    <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: '#D97706' }} /> MA
                   </span>
                 </div>
                 <div className="flex-1 overflow-hidden flex flex-col px-3 py-3">

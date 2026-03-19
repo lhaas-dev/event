@@ -101,6 +101,11 @@ function EventCard({ event, onDelete, onClick }) {
             {event.guest_count} Gäste
           </span>
         )}
+        {event.staff_count > 0 && (
+          <span className="inline-flex items-center gap-1.5 text-xs text-amber-700 bg-amber-100 px-2.5 py-1 rounded-full">
+            {event.staff_count} Mitarbeiter
+          </span>
+        )}
       </div>
       <div className="mt-4 pt-4 border-t border-border">
         <span className="text-xs text-primary font-medium group-hover:underline">
