@@ -128,7 +128,8 @@ function RoundTable({ tableIndex, seats, guestMap }) {
   const seatSize = Math.max(28, Math.min(36, Math.floor(140 / seatCount)));
   const seatHalf = seatSize / 2;
   const seatDist = tableR + seatHalf + 8;
-  const labelDist = seatDist + seatHalf + 16;
+  // Increased label distance to prevent overlap
+  const labelDist = seatDist + seatHalf + 24;
 
   return (
     <div style={{ position: 'relative', width: CONTAINER, height: CONTAINER, flexShrink: 0 }}>
@@ -149,9 +150,30 @@ function RoundTable({ tableIndex, seats, guestMap }) {
         const angle = (2 * Math.PI / seatCount) * seatIdx - Math.PI / 2;
         const sx = cx + seatDist * Math.cos(angle);
         const sy = cy + seatDist * Math.sin(angle);
-        const lx = cx + labelDist * Math.cos(angle);
-        const ly = cy + labelDist * Math.sin(angle);
+        
+        // Calculate label position based on angle for better placement
+        const labelRadius = labelDist;
+        const lx = cx + labelRadius * Math.cos(angle);
+        const ly = cy + labelRadius * Math.sin(angle);
+        
         const guest = guestId ? guestMap[guestId] : null;
+        
+        // Determine text alignment based on position
+        let textAlign = 'center';
+        let labelOffsetX = -50;
+        let labelWidth = 100;
+        
+        // Adjust alignment based on angle position
+        const angleDeg = (angle * 180 / Math.PI + 360) % 360;
+        if (angleDeg > 45 && angleDeg < 135) {
+          // Right side - align left
+          textAlign = 'left';
+          labelOffsetX = -10;
+        } else if (angleDeg > 225 && angleDeg < 315) {
+          // Left side - align right
+          textAlign = 'right';
+          labelOffsetX = -90;
+        }
 
         return (
           <Fragment key={seatIdx}>
@@ -165,26 +187,41 @@ function RoundTable({ tableIndex, seats, guestMap }) {
               />
             </div>
 
-            {/* Name label – radially outward */}
+            {/* Name label – positioned outside the seat circle */}
             {guest && (
               <div
                 style={{
                   position: 'absolute',
-                  left: lx - 46,
-                  top: ly - 13,
-                  width: 92,
+                  left: lx + labelOffsetX,
+                  top: ly - 8,
+                  width: labelWidth,
                   pointerEvents: 'none',
                   zIndex: 2,
-                  textAlign: 'center',
-                  lineHeight: 1.25,
+                  textAlign: textAlign,
+                  lineHeight: 1.2,
                 }}
               >
-                <span style={{ fontSize: 8, color: '#1A1A1A', fontFamily: 'Manrope,sans-serif', fontWeight: 500 }}>
+                <div style={{ 
+                  fontSize: 9, 
+                  color: '#1A1A1A', 
+                  fontFamily: 'Manrope,sans-serif', 
+                  fontWeight: 500,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}>
                   {guest.first_name} {guest.last_name}
-                </span>
-              <div style={{ fontSize: 7, color: guest.is_staff ? '#D97706' : '#3B82F6', marginTop: 1, fontWeight: 600 }}>
-                                  {guest.is_staff ? 'Mitarbeiter' : (guest.guest_type === 'kind' ? 'Kind' : '')}
-                                </div>
+                </div>
+                {(guest.is_staff || guest.guest_type === 'kind') && (
+                  <div style={{ 
+                    fontSize: 7, 
+                    color: guest.is_staff ? '#D97706' : '#3B82F6', 
+                    fontWeight: 600,
+                    marginTop: 1,
+                  }}>
+                    {guest.is_staff ? 'Mitarbeiter' : 'Kind'}
+                  </div>
+                )}
               </div>
             )}
           </Fragment>

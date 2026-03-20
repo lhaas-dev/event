@@ -331,6 +331,7 @@ export default function GuestsPage() {
   const adultsCount = guestList.filter(g => g.guest_type !== 'kind').length;
   const kidsCount = guestList.filter(g => g.guest_type === 'kind').length;
   const companionsCount = guestList.filter(g => g.companion_of).length;
+  const staffCount = guests.filter(g => g.is_staff).length;
 
   return (
     <div className="min-h-screen bg-background" data-testid="guests-page">
@@ -434,11 +435,12 @@ export default function GuestsPage() {
           {/* Right: Guest List */}
           <div className="lg:col-span-2">
             {/* Stats */}
-            <div className="grid grid-cols-3 gap-3 mb-4">
+            <div className="grid grid-cols-4 gap-3 mb-4">
               {[
-                { label: 'Gesamt', value: guestList.length, color: '#7D8F69' },
+                { label: 'Gäste', value: guestList.length, color: '#7D8F69' },
                 { label: 'Erwachsene', value: adultsCount, color: '#7D8F69' },
                 { label: 'Kinder', value: kidsCount, color: '#3B82F6' },
+                { label: 'Mitarbeiter', value: staffCount, color: '#D97706' },
               ].map(s => (
                 <div key={s.label} className="bg-white border border-border rounded-xl px-4 py-3 text-center">
                   <div className="text-2xl font-serif font-semibold" style={{ color: s.color }}>{s.value}</div>
