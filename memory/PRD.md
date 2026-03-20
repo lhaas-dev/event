@@ -87,6 +87,25 @@ Einfache Webapp für Tischplanung bei Events. Gäste hinzufügen als Liste und a
 - [x] **Mitarbeiter nicht auf Einlass-Liste**: Nur Gäste werden beim Check-in angezeigt
 - [x] **Mitarbeiter mit anderer Farbe im Tischplan**: Amber/Orange Farbe für Mitarbeiter zur besseren Unterscheidung
 
+### Phase 5 (E-Mail, Fahrzeug/Probefahrt) - 20.03.2026
+- [x] **Gast-Felder erweitert**: E-Mail-Adresse, Anrede (Herr/Frau/Dr./Prof.), Telefonnummer
+- [x] **E-Mail-Einstellungen**: SMTP-Server konfigurieren unter /settings
+  - SMTP-Host, Port, Benutzername, Passwort
+  - Absender-E-Mail und -Name
+  - TLS/STARTTLS Unterstützung
+- [x] **E-Mail an Gäste senden**: Checkbox-Auswahl in Gästeliste
+  - "Alle mit E-Mail" Button
+  - E-Mail-Modal mit Betreff und Nachricht
+  - Platzhalter: {anrede}, {vorname}, {nachname}, {name}
+- [x] **Fahrzeug-Tab (Probefahrt-Lead-Formular)**:
+  - Gast auswählen aus Dropdown
+  - Telefonnummer (wird automatisch übernommen)
+  - Fahrzeugmodell auswählen (verwaltet unter "Modelle verwalten")
+  - Gewünschtes Datum und Zeit
+  - Notizen
+  - "Probefahrt bestätigen" Button
+  - Liste der Probefahrt-Anfragen mit Status
+
 ## Test Credentials
 - **Admin**: admin / admin123
 - **Besucher**: gast / gast123

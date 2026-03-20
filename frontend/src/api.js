@@ -51,6 +51,26 @@ const menu = {
   delete: (eventId, itemId) => axios.delete(`${BASE}/events/${eventId}/menu/${itemId}`, { headers: getHeaders() }),
 };
 
+const emailSettings = {
+  get: () => axios.get(`${BASE}/email-settings`, { headers: getHeaders() }),
+  save: (data) => axios.post(`${BASE}/email-settings`, data, { headers: getHeaders() }),
+  update: (data) => axios.put(`${BASE}/email-settings`, data, { headers: getHeaders() }),
+  sendEmail: (eventId, data) => axios.post(`${BASE}/events/${eventId}/send-email`, data, { headers: getHeaders() }),
+};
+
+const vehicleModels = {
+  list: (eventId) => axios.get(`${BASE}/events/${eventId}/vehicle-models`, { headers: getHeaders() }),
+  add: (eventId, data) => axios.post(`${BASE}/events/${eventId}/vehicle-models`, data, { headers: getHeaders() }),
+  delete: (eventId, modelId) => axios.delete(`${BASE}/events/${eventId}/vehicle-models/${modelId}`, { headers: getHeaders() }),
+};
+
+const testDrives = {
+  list: (eventId) => axios.get(`${BASE}/events/${eventId}/test-drives`, { headers: getHeaders() }),
+  add: (eventId, data) => axios.post(`${BASE}/events/${eventId}/test-drives`, data, { headers: getHeaders() }),
+  delete: (eventId, driveId) => axios.delete(`${BASE}/events/${eventId}/test-drives/${driveId}`, { headers: getHeaders() }),
+  updateStatus: (eventId, driveId, status) => axios.put(`${BASE}/events/${eventId}/test-drives/${driveId}/status?status=${status}`, {}, { headers: getHeaders() }),
+};
+
 const visitor = {
   events: {
     list: () => axios.get(`${BASE}/visitor/events`, { headers: getHeaders() }),
@@ -76,4 +96,4 @@ const admin = {
   }
 };
 
-export default { auth, events, guests, seating, checkin, menu, visitor, admin };
+export default { auth, events, guests, seating, checkin, menu, emailSettings, vehicleModels, testDrives, visitor, admin };

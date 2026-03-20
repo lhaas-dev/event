@@ -14,6 +14,9 @@ import jwt
 import bcrypt
 import io
 import csv
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -110,6 +113,9 @@ class GuestCreate(BaseModel):
     notes: Optional[str] = None
     vehicle: Optional[str] = None
     license_plate: Optional[str] = None
+    email: Optional[str] = None
+    salutation: Optional[str] = None  # "Herr", "Frau", etc.
+    phone: Optional[str] = None
 
 class GuestUpdate(BaseModel):
     first_name: Optional[str] = None
@@ -121,6 +127,9 @@ class GuestUpdate(BaseModel):
     notes: Optional[str] = None
     vehicle: Optional[str] = None
     license_plate: Optional[str] = None
+    email: Optional[str] = None
+    salutation: Optional[str] = None
+    phone: Optional[str] = None
 
 
 # ---- Menu Models ----
@@ -138,6 +147,47 @@ class MenuItemUpdate(BaseModel):
     category: Optional[str] = None
     price: Optional[float] = None
     allergens: Optional[str] = None
+
+
+# ---- Email Settings Models ----
+
+class EmailSettingsCreate(BaseModel):
+    smtp_host: str
+    smtp_port: int = 587
+    smtp_user: str
+    smtp_password: str
+    smtp_from_email: str
+    smtp_from_name: Optional[str] = None
+    use_tls: bool = True
+
+class EmailSettingsUpdate(BaseModel):
+    smtp_host: Optional[str] = None
+    smtp_port: Optional[int] = None
+    smtp_user: Optional[str] = None
+    smtp_password: Optional[str] = None
+    smtp_from_email: Optional[str] = None
+    smtp_from_name: Optional[str] = None
+    use_tls: Optional[bool] = None
+
+class SendEmailRequest(BaseModel):
+    guest_ids: List[str]
+    subject: str
+    body: str
+
+
+# ---- Vehicle/Test Drive Models ----
+
+class VehicleModelCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+
+class TestDriveRequestCreate(BaseModel):
+    guest_id: str
+    vehicle_model_id: str
+    phone: Optional[str] = None
+    preferred_date: str
+    preferred_time: str
+    notes: Optional[str] = None
 
 class SeatingPlanSave(BaseModel):
     tables: List[List[Optional[str]]]
@@ -317,6 +367,9 @@ async def add_guest(event_id: str, data: GuestCreate, current_user=Depends(get_c
         "notes": data.notes or "",
         "vehicle": data.vehicle or "",
         "license_plate": data.license_plate or "",
+        "email": data.email or "",
+        "salutation": data.salutation or "",
+        "phone": data.phone or "",
         "checked_in": False,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
@@ -533,6 +586,233 @@ async def visitor_get_menu(event_id: str, current_user=Depends(get_visitor_or_us
     """Get menu for visitor view (read-only)"""
     items = await db.menu_items.find({"event_id": event_id}).sort("category", 1).to_list(500)
     return [doc(item) for item in items]
+
+
+# ---- Email Settings Routes ----
+
+@api_router.get("/email-settings")
+async def get_email_settings(current_user=Depends(get_current_user)):
+    user_id = str(current_user["_id"])
+    settings = await db.email_settings.find_one({"user_id": user_id})
+    if not settings:
+        return None
+    result = doc(settings)
+    # Mask password for security
+    result["smtp_password"] = "********" if result.get("smtp_password") else ""
+    return result
+
+@api_router.post("/email-settings")
+async def save_email_settings(data: EmailSettingsCreate, current_user=Depends(get_current_user)):
+    user_id = str(current_user["_id"])
+    settings_doc = {
+        "user_id": user_id,
+        "smtp_host": data.smtp_host,
+        "smtp_port": data.smtp_port,
+        "smtp_user": data.smtp_user,
+        "smtp_password": data.smtp_password,
+        "smtp_from_email": data.smtp_from_email,
+        "smtp_from_name": data.smtp_from_name or "",
+        "use_tls": data.use_tls,
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.email_settings.update_one(
+        {"user_id": user_id},
+        {"$set": settings_doc},
+        upsert=True
+    )
+    return {"ok": True}
+
+@api_router.put("/email-settings")
+async def update_email_settings(data: EmailSettingsUpdate, current_user=Depends(get_current_user)):
+    user_id = str(current_user["_id"])
+    updates = {}
+    data_dict = data.model_dump()
+    for k, v in data_dict.items():
+        if v is not None:
+            updates[k] = v
+    # Don't update password if it's masked
+    if updates.get("smtp_password") == "********":
+        del updates["smtp_password"]
+    updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db.email_settings.update_one({"user_id": user_id}, {"$set": updates})
+    return {"ok": True}
+
+@api_router.post("/events/{event_id}/send-email")
+async def send_email_to_guests(event_id: str, data: SendEmailRequest, current_user=Depends(get_current_user)):
+    user_id = str(current_user["_id"])
+    # Get email settings
+    settings = await db.email_settings.find_one({"user_id": user_id})
+    if not settings:
+        raise HTTPException(400, "E-Mail-Einstellungen nicht konfiguriert")
+    
+    # Get guests
+    guests = []
+    for gid in data.guest_ids:
+        try:
+            guest = await db.guests.find_one({"_id": ObjectId(gid), "event_id": event_id})
+            if guest and guest.get("email"):
+                guests.append(doc(guest))
+        except:
+            pass
+    
+    if not guests:
+        raise HTTPException(400, "Keine Gäste mit E-Mail-Adresse ausgewählt")
+    
+    # Send emails
+    sent_count = 0
+    failed = []
+    
+    try:
+        if settings.get("use_tls", True):
+            server = smtplib.SMTP(settings["smtp_host"], settings["smtp_port"])
+            server.starttls()
+        else:
+            server = smtplib.SMTP(settings["smtp_host"], settings["smtp_port"])
+        
+        server.login(settings["smtp_user"], settings["smtp_password"])
+        
+        from_name = settings.get("smtp_from_name") or settings["smtp_from_email"]
+        from_addr = f"{from_name} <{settings['smtp_from_email']}>"
+        
+        for guest in guests:
+            try:
+                msg = MIMEMultipart()
+                msg['From'] = from_addr
+                msg['To'] = guest["email"]
+                msg['Subject'] = data.subject
+                
+                # Replace placeholders in body
+                body = data.body
+                body = body.replace("{anrede}", guest.get("salutation", ""))
+                body = body.replace("{vorname}", guest.get("first_name", ""))
+                body = body.replace("{nachname}", guest.get("last_name", ""))
+                body = body.replace("{name}", f"{guest.get('first_name', '')} {guest.get('last_name', '')}")
+                
+                msg.attach(MIMEText(body, 'plain', 'utf-8'))
+                server.send_message(msg)
+                sent_count += 1
+            except Exception as e:
+                failed.append({"guest": f"{guest['first_name']} {guest['last_name']}", "error": str(e)})
+        
+        server.quit()
+    except Exception as e:
+        raise HTTPException(500, f"E-Mail-Server-Fehler: {str(e)}")
+    
+    return {"sent": sent_count, "failed": failed}
+
+
+# ---- Vehicle Models Routes ----
+
+@api_router.get("/events/{event_id}/vehicle-models")
+async def list_vehicle_models(event_id: str, current_user=Depends(get_current_user)):
+    models = await db.vehicle_models.find({"event_id": event_id}).sort("name", 1).to_list(100)
+    return [doc(m) for m in models]
+
+@api_router.post("/events/{event_id}/vehicle-models")
+async def add_vehicle_model(event_id: str, data: VehicleModelCreate, current_user=Depends(get_current_user)):
+    model_doc = {
+        "event_id": event_id,
+        "name": data.name.strip(),
+        "description": data.description or "",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    result = await db.vehicle_models.insert_one(model_doc)
+    model_doc["id"] = str(result.inserted_id)
+    del model_doc["_id"]
+    return model_doc
+
+@api_router.delete("/events/{event_id}/vehicle-models/{model_id}")
+async def delete_vehicle_model(event_id: str, model_id: str, current_user=Depends(get_current_user)):
+    try:
+        await db.vehicle_models.delete_one({"_id": ObjectId(model_id), "event_id": event_id})
+    except:
+        pass
+    return {"ok": True}
+
+
+# ---- Test Drive Requests Routes ----
+
+@api_router.get("/events/{event_id}/test-drives")
+async def list_test_drives(event_id: str, current_user=Depends(get_current_user)):
+    drives = await db.test_drives.find({"event_id": event_id}).sort("created_at", -1).to_list(500)
+    result = []
+    for d in drives:
+        d = doc(d)
+        # Get guest info
+        try:
+            guest = await db.guests.find_one({"_id": ObjectId(d["guest_id"])})
+            if guest:
+                d["guest"] = doc(guest)
+        except:
+            pass
+        # Get vehicle model info
+        try:
+            model = await db.vehicle_models.find_one({"_id": ObjectId(d["vehicle_model_id"])})
+            if model:
+                d["vehicle_model"] = doc(model)
+        except:
+            pass
+        result.append(d)
+    return result
+
+@api_router.post("/events/{event_id}/test-drives")
+async def create_test_drive(event_id: str, data: TestDriveRequestCreate, current_user=Depends(get_current_user)):
+    # Get guest to update phone if provided
+    if data.phone:
+        try:
+            await db.guests.update_one({"_id": ObjectId(data.guest_id)}, {"$set": {"phone": data.phone}})
+        except:
+            pass
+    
+    drive_doc = {
+        "event_id": event_id,
+        "guest_id": data.guest_id,
+        "vehicle_model_id": data.vehicle_model_id,
+        "phone": data.phone or "",
+        "preferred_date": data.preferred_date,
+        "preferred_time": data.preferred_time,
+        "notes": data.notes or "",
+        "status": "pending",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    result = await db.test_drives.insert_one(drive_doc)
+    drive_doc["id"] = str(result.inserted_id)
+    del drive_doc["_id"]
+    
+    # Fetch guest and model for response
+    try:
+        guest = await db.guests.find_one({"_id": ObjectId(data.guest_id)})
+        if guest:
+            drive_doc["guest"] = doc(guest)
+    except:
+        pass
+    try:
+        model = await db.vehicle_models.find_one({"_id": ObjectId(data.vehicle_model_id)})
+        if model:
+            drive_doc["vehicle_model"] = doc(model)
+    except:
+        pass
+    
+    return drive_doc
+
+@api_router.delete("/events/{event_id}/test-drives/{drive_id}")
+async def delete_test_drive(event_id: str, drive_id: str, current_user=Depends(get_current_user)):
+    try:
+        await db.test_drives.delete_one({"_id": ObjectId(drive_id), "event_id": event_id})
+    except:
+        pass
+    return {"ok": True}
+
+@api_router.put("/events/{event_id}/test-drives/{drive_id}/status")
+async def update_test_drive_status(event_id: str, drive_id: str, status: str, current_user=Depends(get_current_user)):
+    try:
+        await db.test_drives.update_one(
+            {"_id": ObjectId(drive_id), "event_id": event_id},
+            {"$set": {"status": status, "updated_at": datetime.now(timezone.utc).isoformat()}}
+        )
+    except:
+        raise HTTPException(404, "Probefahrt nicht gefunden")
+    return {"ok": True}
 
 
 app.include_router(api_router)

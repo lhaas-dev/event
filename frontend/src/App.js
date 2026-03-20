@@ -12,8 +12,10 @@ import ExportPage from '@/pages/ExportPage';
 import AdminPage from '@/pages/AdminPage';
 import CheckinPage from '@/pages/CheckinPage';
 import MenuPage from '@/pages/MenuPage';
+import VehiclePage from '@/pages/VehiclePage';
 import VisitorViewPage from '@/pages/VisitorViewPage';
 import VisitorMenuPage from '@/pages/VisitorMenuPage';
+import SettingsPage from '@/pages/SettingsPage';
 import api from '@/api';
 
 function ProtectedRoute({ children }) {
@@ -66,8 +68,10 @@ function AppRoutes() {
       <Route path="/" element={user ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
       <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
       <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
+      <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
       <Route path="/event/:eventId/gaeste" element={<ProtectedRoute><GuestsPage /></ProtectedRoute>} />
       <Route path="/event/:eventId/mitarbeiter" element={<ProtectedRoute><StaffPage /></ProtectedRoute>} />
+      <Route path="/event/:eventId/fahrzeug" element={<ProtectedRoute><VehiclePage /></ProtectedRoute>} />
       <Route path="/event/:eventId/tischplan" element={<ProtectedRoute><SeatingPlanPage /></ProtectedRoute>} />
       <Route path="/event/:eventId/einlass" element={<ProtectedRoute><CheckinPage /></ProtectedRoute>} />
       <Route path="/event/:eventId/menu" element={<ProtectedRoute><MenuPage /></ProtectedRoute>} />

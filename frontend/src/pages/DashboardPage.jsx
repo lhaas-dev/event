@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/api';
 import { toast } from 'sonner';
-import { Users, Settings, Calendar, Trash2, Plus, LogOut, Layout, Shield, Eye } from 'lucide-react';
+import { Users, Settings, Calendar, Trash2, Plus, LogOut, Layout, Shield, Eye, Mail } from 'lucide-react';
 
 function Header() {
   const { user, logout, isAdmin } = useAuth();
@@ -18,6 +18,14 @@ function Header() {
       </div>
       <div className="flex items-center gap-4">
         <span className="text-sm text-muted-foreground">{user?.username}</span>
+        <button
+          data-testid="settings-link"
+          onClick={() => navigate('/settings')}
+          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          title="E-Mail-Einstellungen"
+        >
+          <Mail className="w-4 h-4" />
+        </button>
         {isAdmin && (
           <button
             data-testid="admin-link"
