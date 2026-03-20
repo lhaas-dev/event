@@ -1,8 +1,8 @@
-# Cloudflare Tunnel Konfiguration für Tischplanung
-# Speicherort: ~/.cloudflared/config.yml
+# Cloudflare Tunnel Konfiguration für Event Tischplanung
+# Speicherort: /root/.cloudflared/config.yml
 #
 # WICHTIG: Ersetzen Sie <TUNNEL-ID> mit Ihrer tatsächlichen Tunnel-ID
-# Die Tunnel-ID erhalten Sie nach: cloudflared tunnel create tischplanung
+# Die Tunnel-ID erhalten Sie nach: cloudflared tunnel create event
 
 tunnel: <TUNNEL-ID>
 credentials-file: /root/.cloudflared/<TUNNEL-ID>.json
