@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '@/api';
 import { toast } from 'sonner';
-import { ArrowLeft, Mail, Server, Check, Eye, EyeOff, Settings } from 'lucide-react';
+import { ArrowLeft, Mail, Server, Check, Eye, EyeOff, Settings, FileStack, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 export default function SettingsPage() {
@@ -94,7 +94,25 @@ export default function SettingsPage() {
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-6 py-8">
+      <main className="max-w-2xl mx-auto px-6 py-8 space-y-6">
+        {/* Email Templates Link */}
+        <Link
+          to="/settings/vorlagen"
+          className="flex items-center justify-between bg-white border border-border rounded-2xl p-5 hover:shadow-md hover:border-primary/40 transition-all group"
+          data-testid="email-templates-link"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
+              <FileStack className="w-6 h-6 text-purple-600" />
+            </div>
+            <div>
+              <h2 className="font-serif text-lg">E-Mail-Vorlagen</h2>
+              <p className="text-sm text-muted-foreground">Erstellen und verwalten Sie Vorlagen für Ihre E-Mails</p>
+            </div>
+          </div>
+          <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+        </Link>
+
         {/* Email Settings */}
         <div className="bg-white border border-border rounded-2xl p-6">
           <div className="flex items-center gap-3 mb-6">

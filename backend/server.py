@@ -116,6 +116,7 @@ class GuestCreate(BaseModel):
     email: Optional[str] = None
     salutation: Optional[str] = None  # "Herr", "Frau", etc.
     phone: Optional[str] = None
+    personal_greeting: Optional[str] = None  # "Lieber Stefan", "Liebe Anna", etc.
 
 class GuestUpdate(BaseModel):
     first_name: Optional[str] = None
@@ -130,6 +131,7 @@ class GuestUpdate(BaseModel):
     email: Optional[str] = None
     salutation: Optional[str] = None
     phone: Optional[str] = None
+    personal_greeting: Optional[str] = None
 
 
 # ---- Menu Models ----
@@ -173,6 +175,19 @@ class SendEmailRequest(BaseModel):
     guest_ids: List[str]
     subject: str
     body: str
+
+
+# ---- Email Template Models ----
+
+class EmailTemplateCreate(BaseModel):
+    name: str
+    subject: str
+    body: str
+
+class EmailTemplateUpdate(BaseModel):
+    name: Optional[str] = None
+    subject: Optional[str] = None
+    body: Optional[str] = None
 
 
 # ---- Vehicle/Test Drive Models ----
@@ -370,6 +385,7 @@ async def add_guest(event_id: str, data: GuestCreate, current_user=Depends(get_c
         "email": data.email or "",
         "salutation": data.salutation or "",
         "phone": data.phone or "",
+        "personal_greeting": data.personal_greeting or "",
         "checked_in": False,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
@@ -652,7 +668,7 @@ async def send_email_to_guests(event_id: str, data: SendEmailRequest, current_us
             guest = await db.guests.find_one({"_id": ObjectId(gid), "event_id": event_id})
             if guest and guest.get("email"):
                 guests.append(doc(guest))
-        except:
+        except Exception:
             pass
     
     if not guests:
@@ -687,6 +703,7 @@ async def send_email_to_guests(event_id: str, data: SendEmailRequest, current_us
                 body = body.replace("{vorname}", guest.get("first_name", ""))
                 body = body.replace("{nachname}", guest.get("last_name", ""))
                 body = body.replace("{name}", f"{guest.get('first_name', '')} {guest.get('last_name', '')}")
+                body = body.replace("{persoenliche_anrede}", guest.get("personal_greeting", ""))
                 
                 msg.attach(MIMEText(body, 'plain', 'utf-8'))
                 server.send_message(msg)
@@ -725,7 +742,7 @@ async def add_vehicle_model(event_id: str, data: VehicleModelCreate, current_use
 async def delete_vehicle_model(event_id: str, model_id: str, current_user=Depends(get_current_user)):
     try:
         await db.vehicle_models.delete_one({"_id": ObjectId(model_id), "event_id": event_id})
-    except:
+    except Exception:
         pass
     return {"ok": True}
 
@@ -743,14 +760,14 @@ async def list_test_drives(event_id: str, current_user=Depends(get_current_user)
             guest = await db.guests.find_one({"_id": ObjectId(d["guest_id"])})
             if guest:
                 d["guest"] = doc(guest)
-        except:
+        except Exception:
             pass
         # Get vehicle model info
         try:
             model = await db.vehicle_models.find_one({"_id": ObjectId(d["vehicle_model_id"])})
             if model:
                 d["vehicle_model"] = doc(model)
-        except:
+        except Exception:
             pass
         result.append(d)
     return result
@@ -761,7 +778,7 @@ async def create_test_drive(event_id: str, data: TestDriveRequestCreate, current
     if data.phone:
         try:
             await db.guests.update_one({"_id": ObjectId(data.guest_id)}, {"$set": {"phone": data.phone}})
-        except:
+        except Exception:
             pass
     
     drive_doc = {
@@ -784,13 +801,13 @@ async def create_test_drive(event_id: str, data: TestDriveRequestCreate, current
         guest = await db.guests.find_one({"_id": ObjectId(data.guest_id)})
         if guest:
             drive_doc["guest"] = doc(guest)
-    except:
+    except Exception:
         pass
     try:
         model = await db.vehicle_models.find_one({"_id": ObjectId(data.vehicle_model_id)})
         if model:
             drive_doc["vehicle_model"] = doc(model)
-    except:
+    except Exception:
         pass
     
     return drive_doc
@@ -799,7 +816,7 @@ async def create_test_drive(event_id: str, data: TestDriveRequestCreate, current
 async def delete_test_drive(event_id: str, drive_id: str, current_user=Depends(get_current_user)):
     try:
         await db.test_drives.delete_one({"_id": ObjectId(drive_id), "event_id": event_id})
-    except:
+    except Exception:
         pass
     return {"ok": True}
 
@@ -810,8 +827,105 @@ async def update_test_drive_status(event_id: str, drive_id: str, status: str, cu
             {"_id": ObjectId(drive_id), "event_id": event_id},
             {"$set": {"status": status, "updated_at": datetime.now(timezone.utc).isoformat()}}
         )
-    except:
+    except Exception:
         raise HTTPException(404, "Probefahrt nicht gefunden")
+    return {"ok": True}
+
+
+# ---- Group Check-in Route ----
+
+@api_router.put("/events/{event_id}/guests/{guest_id}/group-checkin")
+async def group_checkin(event_id: str, guest_id: str, current_user=Depends(get_current_user)):
+    """Check in a guest and all their companions at once"""
+    try:
+        # Get the main guest
+        guest = await db.guests.find_one({"_id": ObjectId(guest_id), "event_id": event_id})
+        if not guest:
+            raise HTTPException(404, "Gast nicht gefunden")
+        
+        # Find all companions of this guest
+        companions = await db.guests.find({
+            "event_id": event_id,
+            "companion_of": guest_id
+        }).to_list(100)
+        
+        # Check in the main guest and all companions
+        guest_ids_to_checkin = [ObjectId(guest_id)] + [c["_id"] for c in companions]
+        
+        await db.guests.update_many(
+            {"_id": {"$in": guest_ids_to_checkin}},
+            {"$set": {"checked_in": True}}
+        )
+        
+        return {
+            "ok": True,
+            "checked_in_count": len(guest_ids_to_checkin),
+            "guest_ids": [str(gid) for gid in guest_ids_to_checkin]
+        }
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(500, "Fehler beim Gruppen-Check-in")
+
+
+# ---- Email Template Routes ----
+
+@api_router.get("/email-templates")
+async def list_email_templates(current_user=Depends(get_current_user)):
+    user_id = str(current_user["_id"])
+    templates = await db.email_templates.find({"user_id": user_id}).sort("name", 1).to_list(100)
+    return [doc(t) for t in templates]
+
+@api_router.post("/email-templates")
+async def create_email_template(data: EmailTemplateCreate, current_user=Depends(get_current_user)):
+    user_id = str(current_user["_id"])
+    template_doc = {
+        "user_id": user_id,
+        "name": data.name.strip(),
+        "subject": data.subject.strip(),
+        "body": data.body,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    result = await db.email_templates.insert_one(template_doc)
+    template_doc["id"] = str(result.inserted_id)
+    del template_doc["_id"]
+    return template_doc
+
+@api_router.get("/email-templates/{template_id}")
+async def get_email_template(template_id: str, current_user=Depends(get_current_user)):
+    user_id = str(current_user["_id"])
+    try:
+        template = await db.email_templates.find_one({"_id": ObjectId(template_id), "user_id": user_id})
+    except Exception:
+        raise HTTPException(404, "Vorlage nicht gefunden")
+    if not template:
+        raise HTTPException(404, "Vorlage nicht gefunden")
+    return doc(template)
+
+@api_router.put("/email-templates/{template_id}")
+async def update_email_template(template_id: str, data: EmailTemplateUpdate, current_user=Depends(get_current_user)):
+    user_id = str(current_user["_id"])
+    updates = {k: v for k, v in data.model_dump().items() if v is not None}
+    updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+    try:
+        await db.email_templates.update_one(
+            {"_id": ObjectId(template_id), "user_id": user_id},
+            {"$set": updates}
+        )
+        template = await db.email_templates.find_one({"_id": ObjectId(template_id)})
+    except Exception:
+        raise HTTPException(404, "Vorlage nicht gefunden")
+    if not template:
+        raise HTTPException(404, "Vorlage nicht gefunden")
+    return doc(template)
+
+@api_router.delete("/email-templates/{template_id}")
+async def delete_email_template(template_id: str, current_user=Depends(get_current_user)):
+    user_id = str(current_user["_id"])
+    try:
+        await db.email_templates.delete_one({"_id": ObjectId(template_id), "user_id": user_id})
+    except Exception:
+        pass
     return {"ok": True}
 
 

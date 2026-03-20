@@ -16,6 +16,7 @@ import VehiclePage from '@/pages/VehiclePage';
 import VisitorViewPage from '@/pages/VisitorViewPage';
 import VisitorMenuPage from '@/pages/VisitorMenuPage';
 import SettingsPage from '@/pages/SettingsPage';
+import EmailTemplatesPage from '@/pages/EmailTemplatesPage';
 import api from '@/api';
 
 function ProtectedRoute({ children }) {
@@ -69,6 +70,7 @@ function AppRoutes() {
       <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
       <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
       <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+      <Route path="/settings/vorlagen" element={<ProtectedRoute><EmailTemplatesPage /></ProtectedRoute>} />
       <Route path="/event/:eventId/gaeste" element={<ProtectedRoute><GuestsPage /></ProtectedRoute>} />
       <Route path="/event/:eventId/mitarbeiter" element={<ProtectedRoute><StaffPage /></ProtectedRoute>} />
       <Route path="/event/:eventId/fahrzeug" element={<ProtectedRoute><VehiclePage /></ProtectedRoute>} />

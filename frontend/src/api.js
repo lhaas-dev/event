@@ -41,6 +41,7 @@ const seating = {
 
 const checkin = {
   toggle: (eventId, guestId) => axios.put(`${BASE}/events/${eventId}/guests/${guestId}/checkin`, {}, { headers: getHeaders() }),
+  groupCheckin: (eventId, guestId) => axios.put(`${BASE}/events/${eventId}/guests/${guestId}/group-checkin`, {}, { headers: getHeaders() }),
   resetAll: (eventId) => axios.post(`${BASE}/events/${eventId}/guests/checkin-reset`, {}, { headers: getHeaders() }),
 };
 
@@ -56,6 +57,14 @@ const emailSettings = {
   save: (data) => axios.post(`${BASE}/email-settings`, data, { headers: getHeaders() }),
   update: (data) => axios.put(`${BASE}/email-settings`, data, { headers: getHeaders() }),
   sendEmail: (eventId, data) => axios.post(`${BASE}/events/${eventId}/send-email`, data, { headers: getHeaders() }),
+};
+
+const emailTemplates = {
+  list: () => axios.get(`${BASE}/email-templates`, { headers: getHeaders() }),
+  get: (id) => axios.get(`${BASE}/email-templates/${id}`, { headers: getHeaders() }),
+  create: (data) => axios.post(`${BASE}/email-templates`, data, { headers: getHeaders() }),
+  update: (id, data) => axios.put(`${BASE}/email-templates/${id}`, data, { headers: getHeaders() }),
+  delete: (id) => axios.delete(`${BASE}/email-templates/${id}`, { headers: getHeaders() }),
 };
 
 const vehicleModels = {
@@ -96,4 +105,4 @@ const admin = {
   }
 };
 
-export default { auth, events, guests, seating, checkin, menu, emailSettings, vehicleModels, testDrives, visitor, admin };
+export default { auth, events, guests, seating, checkin, menu, emailSettings, emailTemplates, vehicleModels, testDrives, visitor, admin };

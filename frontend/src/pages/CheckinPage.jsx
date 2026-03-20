@@ -4,7 +4,7 @@ import api from '@/api';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Search, CheckCircle2, Circle, Users,
-  Settings, FileDown, Layout, Link2, RotateCcw, Briefcase, UtensilsCrossed
+  Settings, FileDown, Layout, Link2, RotateCcw, Briefcase, UtensilsCrossed, UsersRound
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
@@ -33,7 +33,7 @@ function groupGuests(guests) {
 
 const TYPE_COLORS = { erwachsener: '#7D8F69', kind: '#3B82F6' };
 
-function CheckinRow({ guest, guestMap, onToggle, isCompanion }) {
+function CheckinRow({ guest, guestMap, onToggle, onGroupCheckin, isCompanion, hasCompanions }) {
   const [loading, setLoading] = useState(false);
   const initials = `${guest.first_name?.[0] || ''}${guest.last_name?.[0] || ''}`.toUpperCase();
   const companionOf = guest.companion_of ? guestMap[guest.companion_of] : null;
@@ -41,6 +41,13 @@ function CheckinRow({ guest, guestMap, onToggle, isCompanion }) {
   const handleToggle = async () => {
     setLoading(true);
     await onToggle(guest.id);
+    setLoading(false);
+  };
+
+  const handleGroupCheckin = async (e) => {
+    e.stopPropagation();
+    setLoading(true);
+    await onGroupCheckin(guest.id);
     setLoading(false);
   };
 
@@ -82,8 +89,28 @@ function CheckinRow({ guest, guestMap, onToggle, isCompanion }) {
               {companionOf.first_name}
             </span>
           )}
+          {hasCompanions && !isCompanion && (
+            <span className="flex items-center gap-0.5 text-[10px] text-blue-600">
+              <UsersRound className="w-2.5 h-2.5" />
+              +Begleitung
+            </span>
+          )}
         </div>
       </div>
+
+      {/* Group check-in button */}
+      {hasCompanions && !isCompanion && !guest.checked_in && (
+        <button
+          data-testid={`group-checkin-${guest.id}`}
+          onClick={handleGroupCheckin}
+          disabled={loading}
+          className="flex items-center gap-1 px-2 py-1.5 text-xs bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-all border border-blue-200"
+          title="Gruppe einchecken"
+        >
+          <UsersRound className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Gruppe</span>
+        </button>
+      )}
 
       {/* Check button - smaller */}
       <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all
@@ -137,6 +164,24 @@ export default function CheckinPage() {
       toast.error('Fehler beim Aktualisieren');
     }
   }, [eventId]);
+
+  const handleGroupCheckin = useCallback(async (guestId) => {
+    try {
+      const res = await api.checkin.groupCheckin(eventId, guestId);
+      // Update all checked-in guests
+      setGuests(prev => prev.map(g => 
+        res.data.guest_ids.includes(g.id) ? { ...g, checked_in: true } : g
+      ));
+      toast.success(`${res.data.checked_in_count} Personen eingecheckt`);
+    } catch {
+      toast.error('Fehler beim Gruppen-Check-in');
+    }
+  }, [eventId]);
+
+  // Create a set of guest IDs that have companions
+  const guestsWithCompanions = new Set(
+    guestsOnly.filter(g => g.companion_of).map(g => g.companion_of)
+  );
 
   const handleResetAll = async () => {
     if (!window.confirm('Alle Check-ins zurücksetzen?')) return;
@@ -285,7 +330,9 @@ export default function CheckinPage() {
               guest={guest}
               guestMap={guestMap}
               onToggle={handleToggle}
+              onGroupCheckin={handleGroupCheckin}
               isCompanion={!!guest.companion_of}
+              hasCompanions={guestsWithCompanions.has(guest.id)}
             />
           ))
         )}

@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/api';
 import { toast } from 'sonner';
-import { Users, Settings, Calendar, Trash2, Plus, LogOut, Layout, Shield, Eye, Mail } from 'lucide-react';
+import { Users, Settings, Calendar, Trash2, Plus, LogOut, Layout, Shield, Eye, Mail, ChevronRight } from 'lucide-react';
 
 function Header() {
   const { user, logout, isAdmin } = useAuth();
@@ -287,16 +287,38 @@ export default function DashboardPage() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {events.map(event => (
-              <EventCard
-                key={event.id}
-                event={event}
-                onDelete={handleDelete}
-                onClick={(id) => navigate(`/event/${id}/gaeste`)}
-              />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {events.map(event => (
+                <EventCard
+                  key={event.id}
+                  event={event}
+                  onDelete={handleDelete}
+                  onClick={(id) => navigate(`/event/${id}/gaeste`)}
+                />
+              ))}
+            </div>
+            
+            {/* Settings Quick Access Card */}
+            <div className="mt-10">
+              <Link
+                to="/settings"
+                data-testid="dashboard-settings-link"
+                className="flex items-center justify-between bg-white border border-border rounded-2xl p-5 hover:shadow-md hover:border-primary/40 transition-all group max-w-md"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                    <Mail className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h2 className="font-medium text-foreground">E-Mail-Einstellungen</h2>
+                    <p className="text-sm text-muted-foreground">SMTP-Server und Vorlagen konfigurieren</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+              </Link>
+            </div>
+          </>
         )}
       </main>
 

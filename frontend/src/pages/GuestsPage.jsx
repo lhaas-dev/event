@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import api from '@/api';
 import { toast } from 'sonner';
-import { ArrowLeft, Plus, Trash2, Upload, Users, Settings, FileDown, Layout, Edit2, Check, X, Link2, CheckCircle2, UtensilsCrossed, Briefcase, Car, FileText, Mail, Phone, Send } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Upload, Users, Settings, FileDown, Layout, Edit2, Check, X, Link2, CheckCircle2, UtensilsCrossed, Briefcase, Car, FileText, Mail, Phone, Send, FileStack, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 const TYPE_COLORS = { erwachsener: '#7D8F69', kind: '#3B82F6' };
@@ -93,6 +93,7 @@ function GuestRow({ guest, allGuests, onDelete, onUpdate, selected, onSelect }) 
   const [email, setEmail] = useState(guest.email || '');
   const [salutation, setSalutation] = useState(guest.salutation || '');
   const [phone, setPhone] = useState(guest.phone || '');
+  const [personalGreeting, setPersonalGreeting] = useState(guest.personal_greeting || '');
 
   const companionName = guest.companion_of
     ? allGuests.find(g => g.id === guest.companion_of)
@@ -110,6 +111,7 @@ function GuestRow({ guest, allGuests, onDelete, onUpdate, selected, onSelect }) 
       email: email.trim(),
       salutation: salutation,
       phone: phone.trim(),
+      personal_greeting: personalGreeting.trim(),
     });
     setEditing(false);
   };
@@ -125,6 +127,7 @@ function GuestRow({ guest, allGuests, onDelete, onUpdate, selected, onSelect }) 
     setEmail(guest.email || '');
     setSalutation(guest.salutation || '');
     setPhone(guest.phone || '');
+    setPersonalGreeting(guest.personal_greeting || '');
     setEditing(false);
   };
 
@@ -141,6 +144,10 @@ function GuestRow({ guest, allGuests, onDelete, onUpdate, selected, onSelect }) 
             className="px-3 py-1.5 rounded-lg border border-border text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
           <input value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Nachname"
             className="px-3 py-1.5 rounded-lg border border-border text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
+        </div>
+        <div className="mb-2">
+          <input value={personalGreeting} onChange={e => setPersonalGreeting(e.target.value)} placeholder="Persönliche Anrede (z.B. Lieber Stefan)"
+            className="w-full px-3 py-1.5 rounded-lg border border-border text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
         </div>
         <div className="grid grid-cols-2 gap-2 mb-2">
           <input value={email} onChange={e => setEmail(e.target.value)} placeholder="E-Mail" type="email"
@@ -295,6 +302,7 @@ export default function GuestsPage() {
   const [email, setEmail] = useState('');
   const [salutation, setSalutation] = useState('');
   const [phone, setPhone] = useState('');
+  const [personalGreeting, setPersonalGreeting] = useState('');
   const [adding, setAdding] = useState(false);
   const [editingEvent, setEditingEvent] = useState(false);
   const [eventName, setEventName] = useState('');
@@ -308,6 +316,8 @@ export default function GuestsPage() {
   const [emailSubject, setEmailSubject] = useState('');
   const [emailBody, setEmailBody] = useState('');
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailTemplates, setEmailTemplates] = useState([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState('');
 
   useEffect(() => {
     Promise.all([api.events.get(eventId), api.guests.list(eventId)])
@@ -320,6 +330,11 @@ export default function GuestsPage() {
       })
       .catch(() => toast.error('Fehler beim Laden'))
       .finally(() => setLoading(false));
+    
+    // Load email templates
+    api.emailTemplates.list()
+      .then(res => setEmailTemplates(res.data))
+      .catch(() => {});
   }, [eventId]);
 
   // Filter to show only non-staff guests
@@ -342,10 +357,11 @@ export default function GuestsPage() {
         email: email.trim(),
         salutation: salutation,
         phone: phone.trim(),
+        personal_greeting: personalGreeting.trim(),
       });
       setGuests(prev => [...prev, res.data].sort((a, b) => a.last_name.localeCompare(b.last_name)));
       setFirstName(''); setLastName(''); setGuestType('erwachsener'); setCompanionOf('');
-      setNotes(''); setVehicle(''); setLicensePlate(''); setEmail(''); setSalutation(''); setPhone('');
+      setNotes(''); setVehicle(''); setLicensePlate(''); setEmail(''); setSalutation(''); setPhone(''); setPersonalGreeting('');
       toast.success('Gast hinzugefügt');
     } catch { toast.error('Fehler beim Hinzufügen'); }
     finally { setAdding(false); }
@@ -389,10 +405,22 @@ export default function GuestsPage() {
       setSelectedGuestIds(new Set());
       setEmailSubject('');
       setEmailBody('');
+      setSelectedTemplateId('');
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Fehler beim Senden');
     } finally {
       setSendingEmail(false);
+    }
+  };
+
+  const handleTemplateSelect = (templateId) => {
+    setSelectedTemplateId(templateId);
+    if (templateId) {
+      const template = emailTemplates.find(t => t.id === templateId);
+      if (template) {
+        setEmailSubject(template.subject);
+        setEmailBody(template.body);
+      }
     }
   };
 
@@ -509,6 +537,8 @@ export default function GuestsPage() {
                   placeholder="E-Mail" className="w-full px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
                 <input data-testid="phone-input" type="tel" value={phone} onChange={e => setPhone(e.target.value)}
                   placeholder="Telefon" className="w-full px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                <input data-testid="personal-greeting-input" type="text" value={personalGreeting} onChange={e => setPersonalGreeting(e.target.value)}
+                  placeholder="Persönliche Anrede (z.B. Lieber Stefan)" className="w-full px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="text-xs text-muted-foreground uppercase tracking-wide block mb-1">Alter</label>
@@ -654,6 +684,22 @@ export default function GuestsPage() {
               An {selectedGuestIds.size} Gäste mit E-Mail-Adresse
             </div>
 
+            {emailTemplates.length > 0 && (
+              <div>
+                <label className="text-sm font-medium block mb-1">Vorlage verwenden</label>
+                <select
+                  value={selectedTemplateId}
+                  onChange={e => handleTemplateSelect(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                >
+                  <option value="">– Keine Vorlage –</option>
+                  {emailTemplates.map(t => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <div className="space-y-3">
               <div>
                 <label className="text-sm font-medium block mb-1">Betreff</label>
@@ -675,7 +721,7 @@ export default function GuestsPage() {
                   className="w-full px-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Verfügbare Platzhalter: {'{anrede}'}, {'{vorname}'}, {'{nachname}'}, {'{name}'}
+                  Verfügbare Platzhalter: {'{anrede}'}, {'{vorname}'}, {'{nachname}'}, {'{name}'}, {'{persoenliche_anrede}'}
                 </p>
               </div>
             </div>
