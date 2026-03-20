@@ -41,3 +41,7 @@ test_reports/
 *.temp
 *.pack
 *.deb
+-e 
+# Environment files
+*.env
+*.env.*
