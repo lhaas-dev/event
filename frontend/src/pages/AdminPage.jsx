@@ -200,7 +200,7 @@ export default function AdminPage() {
                               )}
                             </div>
                             <div className="text-xs text-muted-foreground mt-0.5">
-                              Erstellt: {u.created_at ? new Date(u.created_at).toLocaleDateString('de-CH') : '—'}
+                              Erstellt: {u.created_at ? new Date(u.created_at).toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—'}
                             </div>
                           </div>
                         </div>

@@ -71,6 +71,16 @@ function TestDriveCard({ drive, onDelete }) {
     cancelled: 'Storniert',
   };
 
+  // Format date to DD/MM/YYYY
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    return dateStr;
+  };
+
   return (
     <div className="bg-white border border-border rounded-xl p-4 hover:shadow-md transition-shadow" data-testid={`test-drive-${drive.id}`}>
       <div className="flex items-start justify-between mb-3">
@@ -102,7 +112,7 @@ function TestDriveCard({ drive, onDelete }) {
       <div className="grid grid-cols-2 gap-3 text-sm">
         <div className="flex items-center gap-2 text-muted-foreground">
           <Calendar className="w-4 h-4" />
-          <span>{drive.preferred_date}</span>
+          <span>{formatDate(drive.preferred_date)}</span>
         </div>
         <div className="flex items-center gap-2 text-muted-foreground">
           <Clock className="w-4 h-4" />
@@ -176,8 +186,15 @@ export default function VehiclePage() {
     e.preventDefault();
     if (!selectedGuest) { toast.error('Bitte Gast auswählen'); return; }
     if (!selectedModel) { toast.error('Bitte Fahrzeugmodell auswählen'); return; }
-    if (!preferredDate) { toast.error('Bitte Datum auswählen'); return; }
+    if (!preferredDate || preferredDate.length !== 10) { toast.error('Bitte Datum im Format TT/MM/JJJJ eingeben'); return; }
     if (!preferredTime) { toast.error('Bitte Uhrzeit auswählen'); return; }
+    
+    // Validate and convert date from DD/MM/YYYY to YYYY-MM-DD for storage
+    const dateParts = preferredDate.split('/');
+    if (dateParts.length !== 3) { toast.error('Ungültiges Datumsformat'); return; }
+    const [day, month, year] = dateParts;
+    if (parseInt(day) > 31 || parseInt(month) > 12) { toast.error('Ungültiges Datum'); return; }
+    const isoDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
     
     setSubmitting(true);
     try {
@@ -185,7 +202,7 @@ export default function VehiclePage() {
         guest_id: selectedGuest,
         vehicle_model_id: selectedModel,
         phone: phone.trim(),
-        preferred_date: preferredDate,
+        preferred_date: isoDate,
         preferred_time: preferredTime,
         notes: notes.trim(),
       });
@@ -374,14 +391,22 @@ export default function VehiclePage() {
                 {/* Date and Time */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-sm font-medium text-foreground block mb-1.5">Gewünschtes Datum *</label>
+                    <label className="text-sm font-medium text-foreground block mb-1.5">Gewünschtes Datum * (TT/MM/JJJJ)</label>
                     <div className="relative">
                       <Calendar className="w-4 h-4 text-muted-foreground absolute left-4 top-1/2 -translate-y-1/2" />
                       <input
                         data-testid="date-input"
-                        type="date"
+                        type="text"
                         value={preferredDate}
-                        onChange={e => setPreferredDate(e.target.value)}
+                        onChange={e => {
+                          let val = e.target.value.replace(/[^\d/]/g, '');
+                          // Auto-add slashes
+                          if (val.length === 2 && !val.includes('/')) val += '/';
+                          if (val.length === 5 && val.split('/').length === 2) val += '/';
+                          if (val.length <= 10) setPreferredDate(val);
+                        }}
+                        placeholder="TT/MM/JJJJ"
+                        maxLength={10}
                         className="w-full pl-11 pr-4 py-3 rounded-xl border border-border text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
