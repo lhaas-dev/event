@@ -1,4 +1,4 @@
-# Tischplanung - Installationsanleitung für Ubuntu Server 24.04
+# Event Tischplanung - Installationsanleitung
 
 ## Voraussetzungen
 - Ubuntu Server 24.04 LTS
@@ -8,88 +8,43 @@
 
 ---
 
-## Schritt 1: Server vorbereiten
+## Schnellinstallation
 
 ```bash
-# Als root anmelden oder sudo verwenden
+# Als root anmelden
 sudo su -
 
-# System aktualisieren
-apt update && apt upgrade -y
-```
-
----
-
-## Schritt 2: Anwendungsdateien übertragen
-
-Übertragen Sie die Anwendungsdateien auf Ihren Server:
-
-```bash
-# Option A: Via SCP von Ihrem lokalen Rechner
-scp -r /pfad/zu/tischplanung/* root@IHR-SERVER:/tmp/tischplanung-source/
-
-# Option B: Via Git (falls in einem Repository)
-cd /tmp
-git clone <REPO-URL> tischplanung-source
-```
-
-Die Struktur sollte so aussehen:
-```
-/tmp/tischplanung-source/
-├── backend/
-│   ├── server.py
-│   ├── requirements.txt
-│   └── .env (wird vom Installer erstellt)
-├── frontend/
-│   ├── src/
-│   ├── public/
-│   ├── package.json
-│   └── .env (wird vom Installer erstellt)
-├── install.sh
-└── memory/
-```
-
----
-
-## Schritt 3: Installation ausführen
-
-```bash
-# Installer ausführbar machen und starten
-chmod +x /tmp/tischplanung-source/install.sh
-cd /tmp/tischplanung-source
+# Repository klonen und installieren
+git clone https://github.com/lhaas-dev/event.git /opt/event
+cd /opt/event
+chmod +x install.sh
 ./install.sh
 ```
 
-Der Installer:
-- Installiert alle Abhängigkeiten (Node.js, Python, MongoDB, Nginx)
-- Richtet die Anwendung unter `/opt/tischplanung` ein
-- Erstellt systemd Services
-- Installiert cloudflared
-
 ---
 
-## Schritt 4: Cloudflare Tunnel einrichten
+## Nach der Installation: Cloudflare Tunnel
 
-### 4.1 Bei Cloudflare anmelden
+### 1. Bei Cloudflare anmelden
 ```bash
 cloudflared tunnel login
 ```
 Dies öffnet einen Browser-Link. Melden Sie sich an und autorisieren Sie den Tunnel.
 
-### 4.2 Tunnel erstellen
+### 2. Tunnel erstellen
 ```bash
-cloudflared tunnel create tischplanung
+cloudflared tunnel create event
 ```
 **Notieren Sie sich die TUNNEL-ID** (z.B. `a1b2c3d4-e5f6-7890-abcd-ef1234567890`)
 
-### 4.3 DNS-Eintrag erstellen
+### 3. DNS-Eintrag erstellen
 ```bash
-cloudflared tunnel route dns tischplanung event.lhai.ch
+cloudflared tunnel route dns event event.lhai.ch
 ```
 
-### 4.4 Tunnel-Konfiguration erstellen
+### 4. Tunnel-Konfiguration erstellen
 ```bash
-nano ~/.cloudflared/config.yml
+nano /root/.cloudflared/config.yml
 ```
 
 Fügen Sie ein (ersetzen Sie `<TUNNEL-ID>` mit Ihrer ID):
@@ -101,14 +56,12 @@ ingress:
   - hostname: event.lhai.ch
     path: /api/*
     service: http://localhost:8001
-  
   - hostname: event.lhai.ch
     service: http://localhost:3000
-  
   - service: http_status:404
 ```
 
-### 4.5 Tunnel als Service installieren
+### 5. Tunnel als Service installieren
 ```bash
 cloudflared service install
 systemctl start cloudflared
@@ -117,32 +70,25 @@ systemctl enable cloudflared
 
 ---
 
-## Schritt 5: Überprüfung
+## Überprüfung
 
 ### Services prüfen
 ```bash
-# Alle Services sollten "active (running)" zeigen
 systemctl status mongod
-systemctl status tischplanung-backend
-systemctl status tischplanung-frontend
+systemctl status event-backend
+systemctl status event-frontend
 systemctl status cloudflared
 ```
 
 ### Logs ansehen
 ```bash
-# Backend Logs
-journalctl -u tischplanung-backend -f
-
-# Frontend Logs
-journalctl -u tischplanung-frontend -f
-
-# Cloudflared Logs
+journalctl -u event-backend -f
+journalctl -u event-frontend -f
 journalctl -u cloudflared -f
 ```
 
-### Lokaler Test
+### API Test
 ```bash
-# Backend API testen
 curl http://localhost:8001/api/auth/login \
   -X POST \
   -H "Content-Type: application/json" \
@@ -151,9 +97,9 @@ curl http://localhost:8001/api/auth/login \
 
 ---
 
-## Schritt 6: Fertig!
+## Fertig!
 
-Öffnen Sie **https://event.lhai.ch** in Ihrem Browser.
+**URL:** https://event.lhai.ch
 
 **Login-Daten:**
 - Benutzer: `admin`
@@ -161,88 +107,56 @@ curl http://localhost:8001/api/auth/login \
 
 ---
 
+## Wartung
+
+### Updates einspielen
+```bash
+cd /opt/event
+git pull origin main
+
+# Backend neu starten
+cd backend
+source venv/bin/activate
+pip install -r requirements.txt
+systemctl restart event-backend
+
+# Frontend neu bauen
+cd ../frontend
+yarn install
+yarn build
+systemctl restart event-frontend
+```
+
+### Backup
+```bash
+# MongoDB Backup
+mongodump --db event_tischplanung --out /backup/$(date +%Y%m%d)
+
+# Wiederherstellen
+mongorestore --db event_tischplanung /backup/DATUM/event_tischplanung
+```
+
+---
+
 ## Fehlerbehebung
 
 ### MongoDB startet nicht
 ```bash
-# Logs prüfen
 journalctl -u mongod -n 50
-
-# Neustart
 systemctl restart mongod
 ```
 
 ### Backend startet nicht
 ```bash
-# Logs prüfen
-journalctl -u tischplanung-backend -n 50
-
-# Manuell testen
-cd /opt/tischplanung/backend
+journalctl -u event-backend -n 50
+cd /opt/event/backend
 source venv/bin/activate
 python -c "import server; print('OK')"
 ```
 
-### Frontend Build fehlgeschlagen
-```bash
-cd /opt/tischplanung/frontend
-yarn install
-yarn build
-```
-
 ### Cloudflare Tunnel funktioniert nicht
 ```bash
-# Tunnel-Status prüfen
-cloudflared tunnel info tischplanung
-
-# Konfiguration validieren
+cloudflared tunnel info event
 cloudflared tunnel ingress validate
-
-# Manuell testen
-cloudflared tunnel run tischplanung
+cloudflared tunnel run event  # Manueller Test
 ```
-
----
-
-## Wartung
-
-### Anwendung aktualisieren
-```bash
-cd /opt/tischplanung
-
-# Backend
-cd backend
-source venv/bin/activate
-pip install -r requirements.txt
-systemctl restart tischplanung-backend
-
-# Frontend
-cd ../frontend
-yarn install
-yarn build
-systemctl restart tischplanung-frontend
-```
-
-### Backup erstellen
-```bash
-# MongoDB Backup
-mongodump --db tischplanung --out /backup/$(date +%Y%m%d)
-
-# Wiederherstellen
-mongorestore --db tischplanung /backup/DATUM/tischplanung
-```
-
-### Logs rotieren
-```bash
-# Automatisch via systemd/journald
-journalctl --vacuum-time=30d
-```
-
----
-
-## Sicherheitshinweise
-
-1. **Admin-Passwort ändern**: Nach der ersten Anmeldung das Passwort ändern
-2. **Firewall aktiv**: Nur Ports 22, 80, 443 sind offen
-3. **HTTPS**: Cloudflare Tunnel verschlüsselt automatisch
-4. **Updates**: Regelmäßig `apt update && apt upgrade` ausführen

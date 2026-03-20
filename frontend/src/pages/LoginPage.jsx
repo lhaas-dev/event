@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 
-const GARAGE_IMAGE = "https://customer-assets.emergentagent.com/job_guest-placer/artifacts/zak3shqd_GARAGE%202025klein.jpg";
+// Hintergrundbild für die Login-Seite (kann lokal unter /public/images/garage.jpg gespeichert werden)
+const GARAGE_IMAGE = "/images/garage.jpg";
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
