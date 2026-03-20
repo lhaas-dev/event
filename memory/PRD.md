@@ -24,9 +24,10 @@ Einfache Webapp für Tischplanung bei Events. Gäste hinzufügen als Liste und a
 ## Core Entities
 - **User**: username, hashed_password, role (admin/user/visitor)
 - **Event**: user_id, name, table_count, seats_per_table
-- **Guest**: event_id, first_name, last_name, guest_type (erwachsener/kind), companion_of, is_staff, notes, vehicle, license_plate, checked_in
+- **Guest**: event_id, first_name, last_name, guest_type (erwachsener/kind), companion_of, is_staff, notes, vehicle, license_plate, email, salutation, phone, personal_greeting, checked_in
 - **MenuItem**: event_id, name, description, category (essen/getraenke), price, allergens
 - **SeatingPlan**: event_id, tables (2D array)
+- **EmailTemplate**: user_id, name, subject, body
 
 ## Pages / Routes
 | Route | Seite |
@@ -34,8 +35,11 @@ Einfache Webapp für Tischplanung bei Events. Gäste hinzufügen als Liste und a
 | `/` | Login (kein Register) |
 | `/dashboard` | Event-Übersicht |
 | `/admin` | Benutzerverwaltung (nur Admin) |
+| `/settings` | E-Mail-Einstellungen (SMTP) |
+| `/settings/vorlagen` | E-Mail-Vorlagen verwalten |
 | `/event/:id/gaeste` | Gäste-Verwaltung |
 | `/event/:id/mitarbeiter` | Mitarbeiter-Verwaltung |
+| `/event/:id/fahrzeug` | Probefahrt-Anfragen |
 | `/event/:id/tischplan` | Tischplan (Drag & Drop) |
 | `/event/:id/einlass` | Einlass (Gäste abhaken) |
 | `/event/:id/menu` | Menü-Verwaltung (Essen & Getränke) |
@@ -106,6 +110,19 @@ Einfache Webapp für Tischplanung bei Events. Gäste hinzufügen als Liste und a
   - "Probefahrt bestätigen" Button
   - Liste der Probefahrt-Anfragen mit Status
 
+### Phase 6 (Einlass- & E-Mail-Verbesserungen) - 20.03.2026
+- [x] **Gruppen-Check-in**: Gast und alle Begleitpersonen mit einem Klick einchecken
+  - "Gruppe" Button erscheint bei Hauptgästen mit Begleitern
+  - Backend-Endpoint: PUT /api/events/{id}/guests/{id}/group-checkin
+- [x] **E-Mail-Vorlagen**: Vorlagen erstellen, bearbeiten und löschen
+  - Neue Seite /settings/vorlagen
+  - CRUD API: /api/email-templates
+  - Vorlage im E-Mail-Modal auswählbar
+- [x] **Persönliche Anrede**: Neues Feld "Persönliche Anrede" (z.B. "Lieber Stefan")
+  - Im Gast-Formular hinzufügen/bearbeiten
+  - Platzhalter {persoenliche_anrede} für E-Mails
+- [x] **E-Mail-Einstellungen sichtbarer**: Direkter Link im Dashboard-Header + Quick-Access-Card
+
 ## Test Credentials
 - **Admin**: admin / admin123
 - **Besucher**: gast / gast123
@@ -113,12 +130,12 @@ Einfache Webapp für Tischplanung bei Events. Gäste hinzufügen als Liste und a
 ## Prioritized Backlog
 ### P1
 - Tische individuell benennen (z.B. "VIP-Tisch")
-- Einlass: Komplett-Check-in einer Begleitgruppe mit einem Tap
 
 ### P2
 - QR-Code pro Tisch generieren
 - Statistik-Dashboard pro Event
 - PDF-Export verbessern
+- Probefahrt-Status-Verwaltung (bestätigt, abgeschlossen)
 
 ### P3
 - E-Mail-Einladungen / QR-Gäste-App
