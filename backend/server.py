@@ -299,8 +299,8 @@ async def admin_update_password(user_id: str, data: AdminUserUpdate, admin=Depen
 
 @api_router.get("/events")
 async def list_events(current_user=Depends(get_current_user)):
-    user_id = str(current_user["_id"])
-    events = await db.events.find({"user_id": user_id}).sort("created_at", -1).to_list(200)
+    # Alle Events für alle Benutzer sichtbar
+    events = await db.events.find({}).sort("created_at", -1).to_list(200)
     result = []
     for e in events:
         e = doc(e)
@@ -314,7 +314,7 @@ async def list_events(current_user=Depends(get_current_user)):
 async def create_event(data: EventCreate, current_user=Depends(get_current_user)):
     user_id = str(current_user["_id"])
     event_doc = {
-        "user_id": user_id,
+        "user_id": user_id,  # Speichern wer es erstellt hat (für Referenz)
         "name": data.name,
         "table_count": data.table_count,
         "seats_per_table": data.seats_per_table,
@@ -329,9 +329,8 @@ async def create_event(data: EventCreate, current_user=Depends(get_current_user)
 
 @api_router.get("/events/{event_id}")
 async def get_event(event_id: str, current_user=Depends(get_current_user)):
-    user_id = str(current_user["_id"])
     try:
-        event = await db.events.find_one({"_id": ObjectId(event_id), "user_id": user_id})
+        event = await db.events.find_one({"_id": ObjectId(event_id)})
     except Exception:
         raise HTTPException(404, "Event nicht gefunden")
     if not event:
@@ -340,10 +339,9 @@ async def get_event(event_id: str, current_user=Depends(get_current_user)):
 
 @api_router.put("/events/{event_id}")
 async def update_event(event_id: str, data: EventUpdate, current_user=Depends(get_current_user)):
-    user_id = str(current_user["_id"])
     updates = {k: v for k, v in data.model_dump().items() if v is not None}
     try:
-        await db.events.update_one({"_id": ObjectId(event_id), "user_id": user_id}, {"$set": updates})
+        await db.events.update_one({"_id": ObjectId(event_id)}, {"$set": updates})
         event = await db.events.find_one({"_id": ObjectId(event_id)})
     except Exception:
         raise HTTPException(404, "Event nicht gefunden")
@@ -353,9 +351,8 @@ async def update_event(event_id: str, data: EventUpdate, current_user=Depends(ge
 
 @api_router.delete("/events/{event_id}")
 async def delete_event(event_id: str, current_user=Depends(get_current_user)):
-    user_id = str(current_user["_id"])
     try:
-        await db.events.delete_one({"_id": ObjectId(event_id), "user_id": user_id})
+        await db.events.delete_one({"_id": ObjectId(event_id)})
         await db.guests.delete_many({"event_id": event_id})
         await db.seating_plans.delete_one({"event_id": event_id})
     except Exception:
