@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, Fragment } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   DndContext, DragOverlay, useDroppable, useDraggable,
-  PointerSensor, TouchSensor, useSensors, useSensor
+  PointerSensor, TouchSensor, useSensors, useSensor, MouseSensor
 } from '@dnd-kit/core';
 import api from '@/api';
 import { toast } from 'sonner';
@@ -20,12 +20,12 @@ const seatBorder = (guest) => {
 };
 
 // ─── Draggable Guest Chip ───────────────────────────────────────────
-function DraggableGuest({ guest, compact = false, guestMap }) {
+function DraggableGuest({ guest, compact = false, guestMap, isCompanion = false }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: guest.id });
   const initials = `${guest.first_name?.[0] || ''}${guest.last_name?.[0] || ''}`.toUpperCase();
   const typeLabel = guest.is_staff ? 'MA' : (guest.guest_type === 'kind' ? 'Kind' : 'Erw.');
   const companionName = guest.companion_of && guestMap?.[guest.companion_of]
-    ? `${guestMap[guest.companion_of].first_name} ${guestMap[guest.companion_of].last_name}`
+    ? `${guestMap[guest.companion_of].first_name}`
     : null;
 
   if (compact) {
@@ -35,7 +35,7 @@ function DraggableGuest({ guest, compact = false, guestMap }) {
         {...listeners}
         {...attributes}
         title={`${guest.first_name} ${guest.last_name}${guest.is_staff ? ' (Mitarbeiter)' : ''}${companionName ? ' (Begl. v. ' + companionName + ')' : ''}`}
-        style={{ opacity: isDragging ? 0.1 : 1, background: seatBg(guest) }}
+        style={{ opacity: isDragging ? 0.1 : 1, background: seatBg(guest), touchAction: 'none' }}
         className="w-full h-full rounded-full flex items-center justify-center text-white text-xs font-bold cursor-grab select-none transition-opacity"
         data-testid={`draggable-guest-${guest.id}`}
       >
@@ -49,8 +49,8 @@ function DraggableGuest({ guest, compact = false, guestMap }) {
       ref={setNodeRef}
       {...listeners}
       {...attributes}
-      style={{ opacity: isDragging ? 0.1 : 1 }}
-      className={`flex items-center gap-2.5 px-3 py-2.5 bg-white border rounded-xl hover:border-primary/40 hover:bg-primary/5 cursor-grab select-none transition-all ${guest.is_staff ? 'border-amber-300' : 'border-border'}`}
+      style={{ opacity: isDragging ? 0.1 : 1, touchAction: 'none' }}
+      className={`flex items-center gap-2.5 px-3 py-2.5 bg-white border rounded-xl hover:border-primary/40 hover:bg-primary/5 cursor-grab select-none transition-all ${guest.is_staff ? 'border-amber-300' : 'border-border'} ${isCompanion ? 'ml-4 border-l-4' : ''}`}
       data-testid={`draggable-guest-${guest.id}`}
     >
       <div
@@ -69,7 +69,7 @@ function DraggableGuest({ guest, compact = false, guestMap }) {
             {typeLabel}
           </span>
           {companionName && (
-            <span className="text-[10px] text-muted-foreground truncate">Begl. v. {companionName}</span>
+            <span className="text-[10px] text-muted-foreground truncate">→ {companionName}</span>
           )}
         </div>
       </div>
@@ -106,9 +106,10 @@ function DroppableSeat({ id, guest, size, guestMap }) {
       style={{
         width: size, height: size,
         borderRadius: '50%',
-        border: isOver ? '2px solid #C5A059' : hasGuest ? `2px solid ${seatBorder(guest)}` : '2px dashed #C0C0BB',
-        background: isOver ? 'rgba(197,160,89,0.12)' : hasGuest ? `${seatBg(guest)}18` : '#F7F7F5',
-        transition: 'border-color 0.15s, background 0.15s',
+        border: isOver ? '3px solid #C5A059' : hasGuest ? `2px solid ${seatBorder(guest)}` : '2px dashed #C0C0BB',
+        background: isOver ? 'rgba(197,160,89,0.25)' : hasGuest ? `${seatBg(guest)}18` : '#F7F7F5',
+        transition: 'border-color 0.15s, background 0.15s, transform 0.15s',
+        transform: isOver ? 'scale(1.1)' : 'scale(1)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}
     >
@@ -118,18 +119,17 @@ function DroppableSeat({ id, guest, size, guestMap }) {
 }
 
 // ─── Round Table with full names ──────────────────────────────────
-const CONTAINER = 300;
+const CONTAINER = 280;
 
 function RoundTable({ tableIndex, seats, guestMap }) {
   const cx = CONTAINER / 2;
   const cy = CONTAINER / 2;
-  const tableR = 62;
+  const tableR = 55;
   const seatCount = seats.length;
-  const seatSize = Math.max(28, Math.min(36, Math.floor(140 / seatCount)));
+  const seatSize = Math.max(26, Math.min(34, Math.floor(130 / seatCount)));
   const seatHalf = seatSize / 2;
-  const seatDist = tableR + seatHalf + 8;
-  // Increased label distance to prevent overlap
-  const labelDist = seatDist + seatHalf + 24;
+  const seatDist = tableR + seatHalf + 6;
+  const labelDist = seatDist + seatHalf + 20;
 
   return (
     <div style={{ position: 'relative', width: CONTAINER, height: CONTAINER, flexShrink: 0 }}>
@@ -141,7 +141,7 @@ function RoundTable({ tableIndex, seats, guestMap }) {
         borderRadius: '50%', background: '#FDF6E3', border: '2px solid #C5A059',
         display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 0,
       }}>
-        <span style={{ fontSize: 12, fontWeight: 600, color: '#8B6914', fontFamily: 'Manrope,sans-serif' }}>
+        <span style={{ fontSize: 11, fontWeight: 600, color: '#8B6914', fontFamily: 'Manrope,sans-serif' }}>
           Tisch {tableIndex + 1}
         </span>
       </div>
@@ -151,33 +151,27 @@ function RoundTable({ tableIndex, seats, guestMap }) {
         const sx = cx + seatDist * Math.cos(angle);
         const sy = cy + seatDist * Math.sin(angle);
         
-        // Calculate label position based on angle for better placement
         const labelRadius = labelDist;
         const lx = cx + labelRadius * Math.cos(angle);
         const ly = cy + labelRadius * Math.sin(angle);
         
         const guest = guestId ? guestMap[guestId] : null;
         
-        // Determine text alignment based on position
         let textAlign = 'center';
-        let labelOffsetX = -50;
-        let labelWidth = 100;
+        let labelOffsetX = -45;
+        let labelWidth = 90;
         
-        // Adjust alignment based on angle position
         const angleDeg = (angle * 180 / Math.PI + 360) % 360;
         if (angleDeg > 45 && angleDeg < 135) {
-          // Right side - align left
           textAlign = 'left';
-          labelOffsetX = -10;
+          labelOffsetX = -8;
         } else if (angleDeg > 225 && angleDeg < 315) {
-          // Left side - align right
           textAlign = 'right';
-          labelOffsetX = -90;
+          labelOffsetX = -82;
         }
 
         return (
           <Fragment key={seatIdx}>
-            {/* Seat */}
             <div style={{ position: 'absolute', left: sx - seatHalf, top: sy - seatHalf, zIndex: 3 }}>
               <DroppableSeat
                 id={`seat-${tableIndex}-${seatIdx}`}
@@ -187,7 +181,6 @@ function RoundTable({ tableIndex, seats, guestMap }) {
               />
             </div>
 
-            {/* Name label – positioned outside the seat circle */}
             {guest && (
               <div
                 style={{
@@ -202,7 +195,7 @@ function RoundTable({ tableIndex, seats, guestMap }) {
                 }}
               >
                 <div style={{ 
-                  fontSize: 9, 
+                  fontSize: 8, 
                   color: '#1A1A1A', 
                   fontFamily: 'Manrope,sans-serif', 
                   fontWeight: 500,
@@ -219,7 +212,7 @@ function RoundTable({ tableIndex, seats, guestMap }) {
                     fontWeight: 600,
                     marginTop: 1,
                   }}>
-                    {guest.is_staff ? 'Mitarbeiter' : 'Kind'}
+                    {guest.is_staff ? 'MA' : 'Kind'}
                   </div>
                 )}
               </div>
@@ -231,13 +224,58 @@ function RoundTable({ tableIndex, seats, guestMap }) {
   );
 }
 
+// ─── Grouped Guest List (Main + Companions) ────────────────────────
+function GroupedGuestList({ guests, guestMap }) {
+  // Separate main guests (no companion_of) and companions
+  const mainGuests = guests.filter(g => !g.companion_of);
+  const companionMap = {};
+  
+  guests.forEach(g => {
+    if (g.companion_of) {
+      if (!companionMap[g.companion_of]) companionMap[g.companion_of] = [];
+      companionMap[g.companion_of].push(g);
+    }
+  });
+
+  // Sort main guests alphabetically
+  mainGuests.sort((a, b) => a.last_name.localeCompare(b.last_name));
+
+  return (
+    <div className="space-y-1">
+      {mainGuests.map(main => (
+        <div key={main.id}>
+          <DraggableGuest guest={main} guestMap={guestMap} isCompanion={false} />
+          {companionMap[main.id]?.map(comp => (
+            <div key={comp.id} className="mt-1">
+              <DraggableGuest guest={comp} guestMap={guestMap} isCompanion={true} />
+            </div>
+          ))}
+        </div>
+      ))}
+      {/* Show orphan companions (whose main guest is already placed) */}
+      {guests.filter(g => g.companion_of && !mainGuests.find(m => m.id === g.companion_of)).map(orphan => (
+        <div key={orphan.id}>
+          <DraggableGuest guest={orphan} guestMap={guestMap} isCompanion={true} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ─── Droppable Unassigned Zone ─────────────────────────────────────
 function UnassignedZone({ guests, guestMap }) {
   const { setNodeRef, isOver } = useDroppable({ id: 'unassigned' });
   return (
     <div
       ref={setNodeRef}
-      style={{ flex: 1, overflowY: 'auto', transition: 'background 0.15s', background: isOver ? 'rgba(125,143,105,0.04)' : 'transparent', borderRadius: 12, padding: 4 }}
+      className="flex-1 overflow-y-auto pr-1"
+      style={{ 
+        transition: 'background 0.15s', 
+        background: isOver ? 'rgba(125,143,105,0.08)' : 'transparent', 
+        borderRadius: 12, 
+        padding: 4,
+        minHeight: 0,
+      }}
       data-testid="unassigned-zone"
     >
       {guests.length === 0 ? (
@@ -248,9 +286,7 @@ function UnassignedZone({ guests, guestMap }) {
           <p className="text-xs text-muted-foreground">Alle Gäste platziert!</p>
         </div>
       ) : (
-        <div className="space-y-1.5">
-          {guests.map(g => <DraggableGuest key={g.id} guest={g} guestMap={guestMap} />)}
-        </div>
+        <GroupedGuestList guests={guests} guestMap={guestMap} />
       )}
     </div>
   );
@@ -269,9 +305,24 @@ export default function SeatingPlanPage() {
   const [activeId, setActiveId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
+  // Enhanced sensors for iPad compatibility
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } })
+    useSensor(MouseSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 100,
+        tolerance: 8,
+      },
+    }),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    })
   );
 
   useEffect(() => {
@@ -342,8 +393,9 @@ export default function SeatingPlanPage() {
   if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground font-serif animate-pulse">Laden...</div>;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col" data-testid="seating-plan-page">
-      <header className="bg-white border-b border-border px-3 md:px-6 py-3 flex items-center gap-2 md:gap-4 sticky top-0 z-50">
+    <div className="h-screen bg-background flex flex-col overflow-hidden" data-testid="seating-plan-page">
+      {/* Header */}
+      <header className="bg-white border-b border-border px-3 md:px-6 py-3 flex items-center gap-2 md:gap-4 flex-shrink-0 z-50">
         <button onClick={() => navigate('/dashboard')} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
           <ArrowLeft className="w-4 h-4" /><span className="hidden sm:inline text-sm">Dashboard</span>
         </button>
@@ -379,15 +431,17 @@ export default function SeatingPlanPage() {
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden">
+      {/* Main Content - Fixed height, no page scroll */}
+      <div className="flex flex-1 min-h-0">
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-          {/* Sidebar with toggle */}
+          {/* Sidebar - scrollable guest list */}
           <div
             className={`flex-shrink-0 bg-white border-r border-border flex flex-col transition-all duration-300 ${sidebarOpen ? 'w-64 md:w-72' : 'w-12'}`}
+            style={{ height: '100%' }}
             data-testid="unassigned-panel"
           >
-            {/* Sidebar header with toggle */}
-            <div className={`border-b border-border flex items-center ${sidebarOpen ? 'px-4 py-4 justify-between' : 'px-2 py-4 justify-center'}`}>
+            {/* Sidebar header */}
+            <div className={`border-b border-border flex items-center flex-shrink-0 ${sidebarOpen ? 'px-4 py-3 justify-between' : 'px-2 py-3 justify-center'}`}>
               {sidebarOpen && (
                 <div>
                   <h2 className="font-serif text-sm">Nicht platziert</h2>
@@ -406,7 +460,8 @@ export default function SeatingPlanPage() {
 
             {sidebarOpen && (
               <>
-                <div className="flex gap-3 px-4 py-2 border-b border-border/50">
+                {/* Legend */}
+                <div className="flex gap-3 px-4 py-2 border-b border-border/50 flex-shrink-0">
                   <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
                     <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: '#7D8F69' }} /> Erw.
                   </span>
@@ -417,10 +472,14 @@ export default function SeatingPlanPage() {
                     <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: '#D97706' }} /> MA
                   </span>
                 </div>
-                <div className="flex-1 overflow-hidden flex flex-col px-3 py-3">
+                
+                {/* Scrollable guest list */}
+                <div className="flex-1 overflow-y-auto px-3 py-3 min-h-0">
                   <UnassignedZone guests={unassigned} guestMap={guestMap} />
                 </div>
-                <div className="px-4 py-2 border-t border-border bg-background">
+                
+                {/* Footer stats */}
+                <div className="px-4 py-2 border-t border-border bg-background flex-shrink-0">
                   <div className="text-[10px] text-muted-foreground">
                     {assignedIds.size} platziert · {unassigned.length} offen
                   </div>
@@ -437,16 +496,26 @@ export default function SeatingPlanPage() {
             )}
           </div>
 
-          {/* Tables Grid */}
-          <div className="flex-1 overflow-auto p-3 md:p-6" data-testid="tables-grid">
+          {/* Tables Grid - fixed, no scroll on tables themselves */}
+          <div 
+            className="flex-1 overflow-auto p-3 md:p-4" 
+            data-testid="tables-grid"
+            style={{ touchAction: 'pan-x pan-y' }}
+          >
             {tables.length === 0 ? (
               <div className="flex items-center justify-center h-full text-muted-foreground">Keine Tische konfiguriert</div>
             ) : (
-              <div className="grid gap-2 md:gap-3" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${CONTAINER}px, 1fr))` }}>
+              <div 
+                className="grid gap-2 md:gap-3" 
+                style={{ 
+                  gridTemplateColumns: `repeat(auto-fill, minmax(${CONTAINER}px, 1fr))`,
+                  minWidth: 'fit-content',
+                }}
+              >
                 {tables.map((seats, tIdx) => (
                   <div key={tIdx} className="flex flex-col items-center" data-testid={`table-${tIdx}`}>
                     <RoundTable tableIndex={tIdx} seats={seats} guestMap={guestMap} />
-                    <div className="text-xs text-muted-foreground -mt-2">
+                    <div className="text-xs text-muted-foreground -mt-1">
                       {seats.filter(Boolean).length}/{seats.length} Plätze
                     </div>
                   </div>
